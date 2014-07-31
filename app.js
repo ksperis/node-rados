@@ -1,14 +1,34 @@
 var rados = require('./build/Release/rados');
 
-//var cluster = new rados.Rados( "ceph", "client.admin", "/etc/ceph/ceph.conf");
-var cluster = new rados.Rados()
-cluster.connect();
-console.log( "fsid : " + cluster.get_fsid() );
-console.log( "pools : \n" + cluster.pool_list() );
+var cluster = new rados.Rados( "ceph", "client.admin", "/etc/ceph/ceph.conf");
+cluster.connect(function (err) {
+	if (err) {
+		console.log("Error " + err);
+		throw err;
+	}
+	console.log( "fsid : " + cluster.get_fsid() );
+	
+	var ioctx = new rados.Ioctx(cluster, "data");
+	ioctx.write_full("testfile1", new Buffer("01234567"));
+	console.log( "Read data : " + 
+		ioctx.read("testfile1", ioctx.stat("node-rados").psize).toString() );
 
-var ioctx = new rados.Ioctx(cluster, "data");
-ioctx.write_full("node-rados", new Buffer("01234567"));
-console.log( ioctx.read("node-rados", ioctx.stat("node-rados").psize).toString() );
+	ioctx.aio_write("testfile2", new Buffer("01234567")
+		, function (err) {
+			if (err) {
+				console.log("Error " + err);
+				throw err;
+			}
+			console.log( "aio_write sent" );
+		}
+		, function (err) {
+			console.log( "--> in memory" );
+		}
+		, function (err) {
+			console.log( "--> on disk" );
+		});
 
-ioctx.destroy();
+	ioctx.destroy();
+});
+
 cluster.shutdown();

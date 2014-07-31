@@ -39,6 +39,7 @@ class Ioctx : public node::ObjectWrap {
   static v8::Handle<v8::Value> read(const v8::Arguments& args);
   static v8::Handle<v8::Value> write_full(const v8::Arguments& args);
   static v8::Handle<v8::Value> stat(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
   static v8::Persistent<v8::Function> constructor;
 };
 

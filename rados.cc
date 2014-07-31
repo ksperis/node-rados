@@ -37,7 +37,7 @@ void Rados::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("connect"),
       FunctionTemplate::New(connect)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("shutdown"),
-      FunctionTemplate::New(connect)->GetFunction());
+      FunctionTemplate::New(shutdown)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("get_fsid"),
       FunctionTemplate::New(get_fsid)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("pool_list"),
@@ -60,6 +60,8 @@ void Ioctx::Init(Handle<Object> target) {
       FunctionTemplate::New(write_full)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("stat"),
       FunctionTemplate::New(stat)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write"),
+      FunctionTemplate::New(aio_write)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("Ioctx"), constructor);
@@ -70,7 +72,6 @@ Handle<Value> Rados::New(const Arguments& args) {
   HandleScope scope;
 
   Rados* obj = new Rados();
-
   char* cluster_name = get(args[0],"ceph");
   char* user_name = get(args[1],"client.admin");
   char* conffile = get(args[2],"/etc/ceph/ceph.conf");
@@ -84,7 +85,6 @@ Handle<Value> Rados::New(const Arguments& args) {
   }
 
   obj->Wrap(args.This());
-
   return args.This();
 }
 
@@ -92,21 +92,15 @@ Handle<Value> Rados::New(const Arguments& args) {
 Handle<Value> Ioctx::New(const Arguments& args) {
   HandleScope scope;
 
-  if (args.IsConstructCall()) {
-    Ioctx* obj = new Ioctx();
-    Rados* cluster = ObjectWrap::Unwrap<Rados>(
-        args[0]->ToObject());
-    char* pool = get(args[1], "");
-    if ( rados_ioctx_create(cluster->cluster, pool, &obj->ioctx) != 0 ) {
-      return ThrowException(Exception::Error(String::New("create Ioctx failed")));
-    }
-    obj->Wrap(args.This());
-    return args.This();
-  } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    return scope.Close(constructor->NewInstance(argc, argv));
+  Ioctx* obj = new Ioctx();
+  Rados* cluster = ObjectWrap::Unwrap<Rados>(args[0]->ToObject());
+  char* pool = get(args[1], "");
+  if ( rados_ioctx_create(cluster->cluster, pool, &obj->ioctx) != 0 ) {
+    return ThrowException(Exception::Error(String::New("create Ioctx failed")));
   }
+
+  obj->Wrap(args.This());
+  return args.This();
 }
 
 
@@ -114,10 +108,14 @@ Handle<Value> Rados::connect(const Arguments& args) {
   HandleScope scope;
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  Local<Function> cb = Local<Function>::Cast(args[0]);
 
-  rados_connect(obj->cluster);
+  int err = rados_connect(obj->cluster);
 
-  return scope.Close(Null());
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
+  cb->Call(Context::GetCurrent()->Global(), argc, argv);
+  return scope.Close(Undefined());
 }
 
 
@@ -249,4 +247,35 @@ Handle<Value> Ioctx::stat(const Arguments& args) {
   return scope.Close(stat);
 }
 
+
+
+Handle<Value> Ioctx::aio_write(const Arguments& args) {
+  HandleScope scope;
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char* oid = get(args[0], "");
+  char* buffer = Buffer::Data(args[1]);
+  Local<Function> cb = Local<Function>::Cast(args[2]);
+  Local<Function> cb_complete = Local<Function>::Cast(args[3]);
+  Local<Function> cb_safe = Local<Function>::Cast(args[4]);
+
+  rados_completion_t comp;
+  int err = rados_aio_create_completion(NULL, NULL, NULL, &comp);
+
+  err = rados_aio_write(obj->ioctx, oid, comp, buffer, sizeof(buffer), 0);
+
+  const unsigned argc = 1;
+  rados_aio_wait_for_complete(comp);
+  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
+
+  cb->Call(Context::GetCurrent()->Global(), argc, argv);
+
+  rados_aio_wait_for_complete(comp);
+  cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
+
+  rados_aio_wait_for_safe(comp);
+  cb_safe->Call(Context::GetCurrent()->Global(), argc, argv);
+
+  return scope.Close(Undefined());
+}
 
