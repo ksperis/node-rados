@@ -35,11 +35,24 @@ class Ioctx : public node::ObjectWrap {
   Ioctx();
   ~Ioctx();
   
+  typedef struct AsyncData {
+    v8::Persistent<v8::Function> callback;
+    char* buffer;
+    int err;
+  } AsyncData;
+
+  static void ack_callback(rados_completion_t comp, void *arg);
+
   static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
   static v8::Handle<v8::Value> read(const v8::Arguments& args);
   static v8::Handle<v8::Value> write_full(const v8::Arguments& args);
+  static v8::Handle<v8::Value> remove(const v8::Arguments& args);
   static v8::Handle<v8::Value> stat(const v8::Arguments& args);
   static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_append(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_write_full(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_read(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_read2(const v8::Arguments& args);
   static v8::Persistent<v8::Function> constructor;
 };
 

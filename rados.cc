@@ -58,10 +58,20 @@ void Ioctx::Init(Handle<Object> target) {
       FunctionTemplate::New(read)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("write_full"),
       FunctionTemplate::New(write_full)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("remove"),
+      FunctionTemplate::New(remove)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("stat"),
       FunctionTemplate::New(stat)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write"),
       FunctionTemplate::New(aio_write)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_append"),
+      FunctionTemplate::New(aio_append)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write_full"),
+      FunctionTemplate::New(aio_write_full)->GetFunction());
+    tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_read"),
+      FunctionTemplate::New(aio_read)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_read2"),
+      FunctionTemplate::New(aio_read2)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   target->Set(String::NewSymbol("Ioctx"), constructor);
@@ -108,14 +118,10 @@ Handle<Value> Rados::connect(const Arguments& args) {
   HandleScope scope;
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
-  Local<Function> cb = Local<Function>::Cast(args[0]);
 
   int err = rados_connect(obj->cluster);
 
-  const unsigned argc = 1;
-  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
-  cb->Call(Context::GetCurrent()->Global(), argc, argv);
-  return scope.Close(Undefined());
+  return scope.Close(Number::New(err));
 }
 
 
@@ -221,6 +227,23 @@ Handle<Value> Ioctx::write_full(const Arguments& args) {
 }
 
 
+Handle<Value> Ioctx::remove(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() != 1 ||
+      !args[0]->IsString()) {
+    return scope.Close(Null());
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char *oid = get(args[0], "");
+
+  int err = rados_remove(obj->ioctx, oid);
+
+  return scope.Close(Number::New(err));
+}
+
+
 Handle<Value> Ioctx::stat(const Arguments& args) {
   HandleScope scope;
 
@@ -252,29 +275,214 @@ Handle<Value> Ioctx::stat(const Arguments& args) {
 Handle<Value> Ioctx::aio_write(const Arguments& args) {
   HandleScope scope;
 
+  if (args.Length() != 7 ||
+      !args[0]->IsString() ||
+      !Buffer::HasInstance(args[1]) ||
+      !args[2]->IsNumber() ||
+      !args[3]->IsNumber() ||
+      !args[4]->IsFunction() ||
+      !args[5]->IsFunction() ||
+      !args[6]->IsFunction()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   char* oid = get(args[0], "");
   char* buffer = Buffer::Data(args[1]);
-  Local<Function> cb = Local<Function>::Cast(args[2]);
-  Local<Function> cb_complete = Local<Function>::Cast(args[3]);
-  Local<Function> cb_safe = Local<Function>::Cast(args[4]);
+  size_t size = args[2]->Uint32Value();
+  uint64_t offset = args[3]->Uint32Value();
+  Local<Function> cb = Local<Function>::Cast(args[4]);
+  Local<Function> cb_complete = Local<Function>::Cast(args[5]);
+  Local<Function> cb_safe = Local<Function>::Cast(args[6]);
 
   rados_completion_t comp;
-  int err = rados_aio_create_completion(NULL, NULL, NULL, &comp);
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
 
-  err = rados_aio_write(obj->ioctx, oid, comp, buffer, sizeof(buffer), 0);
+  int err = rados_aio_write(obj->ioctx, oid, comp, buffer, size, offset);
 
   const unsigned argc = 1;
-  rados_aio_wait_for_complete(comp);
   Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
-
   cb->Call(Context::GetCurrent()->Global(), argc, argv);
-
   rados_aio_wait_for_complete(comp);
   cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
-
   rados_aio_wait_for_safe(comp);
   cb_safe->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_release(comp);
+
+  return scope.Close(Undefined());
+}
+
+Handle<Value> Ioctx::aio_append(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() != 6 ||
+      !args[0]->IsString() ||
+      !Buffer::HasInstance(args[1]) ||
+      !args[2]->IsNumber() ||
+      !args[3]->IsFunction() ||
+      !args[4]->IsFunction() ||
+      !args[5]->IsFunction()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char* oid = get(args[0], "");
+  char* buffer = Buffer::Data(args[1]);
+  size_t size = args[2]->Uint32Value();
+  Local<Function> cb = Local<Function>::Cast(args[3]);
+  Local<Function> cb_complete = Local<Function>::Cast(args[4]);
+  Local<Function> cb_safe = Local<Function>::Cast(args[5]);
+
+  rados_completion_t comp;
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
+
+  int err = rados_aio_append(obj->ioctx, oid, comp, buffer, size);
+
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
+  cb->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_wait_for_complete(comp);
+  cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_wait_for_safe(comp);
+  cb_safe->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_release(comp);
+
+  return scope.Close(Undefined());
+}
+
+Handle<Value> Ioctx::aio_write_full(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() != 6 ||
+      !args[0]->IsString() ||
+      !Buffer::HasInstance(args[1]) ||
+      !args[2]->IsNumber() ||
+      !args[3]->IsFunction() ||
+      !args[4]->IsFunction() ||
+      !args[5]->IsFunction()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char* oid = get(args[0], "");
+  char* buffer = Buffer::Data(args[1]);
+  size_t size = args[2]->Uint32Value();
+  Local<Function> cb = Local<Function>::Cast(args[3]);
+  Local<Function> cb_complete = Local<Function>::Cast(args[4]);
+  Local<Function> cb_safe = Local<Function>::Cast(args[5]);
+
+  rados_completion_t comp;
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
+
+  int err = rados_aio_write_full(obj->ioctx, oid, comp, buffer, size);
+
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
+  cb->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_wait_for_complete(comp);
+  cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_wait_for_safe(comp);
+  cb_safe->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_release(comp);
+
+  return scope.Close(Undefined());
+}
+
+Handle<Value> Ioctx::aio_read(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() != 5 ||
+      !args[0]->IsString() ||
+      !args[1]->IsNumber() ||
+      !args[2]->IsNumber() ||
+      !args[3]->IsFunction() ||
+      !args[4]->IsFunction()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char* oid = get(args[0], "");
+  size_t size = args[1]->Uint32Value();
+  uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 1;
+  Local<Function> cb = Local<Function>::Cast(args[3]);
+  Local<Function> cb_complete = Local<Function>::Cast(args[4]);
+
+  char buffer[size];
+
+  rados_completion_t comp;
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
+  int err = rados_aio_read(obj->ioctx, oid, comp, buffer, size, offset);
+
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { Local<Value>::New(Number::New(err)) };
+  cb->Call(Context::GetCurrent()->Global(), argc, argv);
+  rados_aio_wait_for_complete(comp);
+  const unsigned argc_complete = 2;
+  Local<Value> argv_complete[argc_complete] = { 
+    Local<Value>::New(Number::New(err)),
+    Local<Value>::New(Buffer::New(buffer, sizeof(buffer))->handle_) };
+  cb_complete->Call(Context::GetCurrent()->Global(), argc_complete, argv_complete);
+  rados_aio_release(comp);
+
+  return scope.Close(Undefined());
+}
+
+
+/********************
+     TODO : Real async function...
+     ****************************/
+
+void Ioctx::ack_callback(rados_completion_t comp, void *arg) {
+  //HandleScope scope;
+  AsyncData* asyncdata = (AsyncData*) arg;
+  printf("DEBUG Callback : %s\n", asyncdata->buffer);
+  //Local<Value>::New(Number::New(asyncdata->err));
+  Buffer::New("toto", 4);
+  /*const unsigned argc = 2;
+  Local<Value> argv[argc] = {
+    Local<Value>::New(Number::New(asyncdata->err)),
+    Local<Value>::New(Buffer::New(asyncdata->buffer, sizeof(asyncdata->buffer))->handle_) };
+  asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);*/
+  //delete asyncdata;
+}
+
+//void Ioctx::ack_callback(rados_completion_t comp, void *arg) {
+//  printf("DEBUG Callback : %s\n", (char *) arg);
+//}
+
+Handle<Value> Ioctx::aio_read2(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() != 4 ||
+      !args[0]->IsString() ||
+      !args[1]->IsNumber() ||
+      !args[2]->IsNumber() ||
+      !args[3]->IsFunction()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  char* oid = get(args[0], "");
+  size_t size = args[1]->Uint32Value();
+  uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 1;
+  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
+
+
+  rados_completion_t comp;
+  AsyncData* asyncdata = new AsyncData;
+  char buffer[size+1];
+  buffer[size+1]='\0';
+  asyncdata->callback = cb_complete;
+  asyncdata->buffer = buffer;
+
+  rados_aio_create_completion((void*) asyncdata, ack_callback, NULL, &comp);
+  asyncdata->err = rados_aio_read(obj->ioctx, oid, comp, asyncdata->buffer, size, offset);
+  //rados_aio_create_completion( NULL, NULL, NULL, &comp);
+  //rados_aio_create_completion((void*) buffer, ack_callback, NULL, &comp);
+  //asyncdata->err = rados_aio_read(obj->ioctx, oid, comp, buffer, size, offset);
+
+  rados_aio_wait_for_complete(comp);
+  printf("DEBUG Callback 2 : %lu, %s\n", size, buffer);
 
   return scope.Close(Undefined());
 }
