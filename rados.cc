@@ -151,7 +151,19 @@ Handle<Value> Rados::pool_list(const Arguments& args) {
     scope.Close(Null());
   }
 
-  return scope.Close(Buffer::New(buffer, buff_size)->handle_);
+  Local<Array> pools = Array::New();
+  const char *b = buffer;
+  uint32_t array_id = 0;
+  while (1) {
+      if (b[array_id] == '\0') {
+          break;
+      }
+      pools->Set(array_id, String::New(b));
+      b += strlen(b) + 1;
+      array_id++;
+  }
+
+  return scope.Close(pools);
 }
 
 

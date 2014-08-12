@@ -16,18 +16,20 @@ Usage
 
 Connect to cluster :
 
-	cluster = new rados.Rados(cluster, user, conffile)
-	cluster.connect(function (err) {})
-	cluster.shutdown()
-	cluster.get_fsid()
+	cluster = new rados.Rados(cluster, user, conffile)	// return Rados
+	cluster.connect()									// return err code
+	cluster.shutdown()									// return err code
+	cluster.get_fsid()									// return String (null on error)
+	cluster.pool_list()									// return Array (null on error)
 
+Create Ioctx :
 
 	ioctx = new rados.Ioctx(cluster, poolname)
 
 Sync Buffered functions :
 
 	ioctx.write_full(oid, buffer)	// return err code
-	ioctx.read(oid, size)			// return buffer (null on error)
+	ioctx.read(oid, size)			// return Buffer (null on error)
 	ioctx.remove(oid)				// return err code
 	ioctx.stat(oid)					// return err code
 

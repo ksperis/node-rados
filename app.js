@@ -12,8 +12,9 @@ if (err) {
 	throw err;
 }
 
-// Print cluster FSID
+// Print cluster FSID, pools
 console.log( "fsid : " + cluster.get_fsid() );
+console.log( "ls pools : " + cluster.pool_list() );
 
 
 //==================================
