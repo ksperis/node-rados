@@ -6,8 +6,6 @@
 #include </usr/include/rados/librados.h>
 
 
-char *get(v8::Local<v8::Value>, const char*);
-
 class Rados : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);

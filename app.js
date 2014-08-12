@@ -1,6 +1,8 @@
 var rados = require('./build/Release/rados');
 
-// Connect to cluster
+//==================================
+//     Connect to cluster
+//==================================
 var cluster = new rados.Rados( "ceph", "client.admin", "/etc/ceph/ceph.conf");
 
 var err = cluster.connect();
@@ -13,7 +15,10 @@ if (err) {
 // Print cluster FSID
 console.log( "fsid : " + cluster.get_fsid() );
 
-// Create IOCTX on pool "data"
+
+//==================================
+//     Create IOCTX
+//==================================
 var ioctx = new rados.Ioctx(cluster, "data");
 
 console.log(" --- Sync Read / Write --- ");
