@@ -4,6 +4,8 @@
 #include "rados.h"
 #include <stdlib.h>
 #include </usr/include/rados/librados.h>
+#include <pthread.h>
+#include <ev.h>
 
 using namespace v8;
 using namespace node;
@@ -427,28 +429,6 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
 }
 
 
-/********************
-     TODO : Real async function...
-     ****************************/
-
-void Ioctx::ack_callback(rados_completion_t comp, void *arg) {
-  //HandleScope scope;
-  AsyncData* asyncdata = (AsyncData*) arg;
-  printf("DEBUG Callback : %s\n", asyncdata->buffer);
-  //Local<Value>::New(Number::New(asyncdata->err));
-  Buffer::New("toto", 4);
-  /*const unsigned argc = 2;
-  Local<Value> argv[argc] = {
-    Local<Value>::New(Number::New(asyncdata->err)),
-    Local<Value>::New(Buffer::New(asyncdata->buffer, sizeof(asyncdata->buffer))->handle_) };
-  asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);*/
-  //delete asyncdata;
-}
-
-//void Ioctx::ack_callback(rados_completion_t comp, void *arg) {
-//  printf("DEBUG Callback : %s\n", (char *) arg);
-//}
-
 Handle<Value> Ioctx::aio_read2(const Arguments& args) {
   HandleScope scope;
 
@@ -466,23 +446,46 @@ Handle<Value> Ioctx::aio_read2(const Arguments& args) {
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 1;
   Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
 
-
-  rados_completion_t comp;
   AsyncData* asyncdata = new AsyncData;
-  char buffer[size+1];
-  buffer[size+1]='\0';
+  char buffer[size];
+  rados_completion_t comp;
+
   asyncdata->callback = cb_complete;
   asyncdata->buffer = buffer;
+  asyncdata->comp = comp;
 
-  rados_aio_create_completion((void*) asyncdata, ack_callback, NULL, &comp);
-  asyncdata->err = rados_aio_read(obj->ioctx, *oid, comp, asyncdata->buffer, size, offset);
-  //rados_aio_create_completion( NULL, NULL, NULL, &comp);
-  //rados_aio_create_completion((void*) buffer, ack_callback, NULL, &comp);
-  //asyncdata->err = rados_aio_read(obj->ioctx, oid, comp, buffer, size, offset);
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
+  rados_aio_read(obj->ioctx, *oid, comp, buffer, size, offset);
 
-  rados_aio_wait_for_complete(comp);
-  printf("DEBUG Callback 2 : %lu, %s\n", size, buffer);
+
+  uv_work_t *req = new uv_work_t;
+  uv_queue_work(
+    uv_default_loop(),
+    req,
+    (uv_work_cb)wait_complete,
+    (uv_after_work_cb)callback
+  );
+
+  rados_aio_release(comp);
 
   return scope.Close(Undefined());
 }
 
+
+void Ioctx::wait_complete(uv_work_t *req) {
+  rados_aio_wait_for_complete(((AsyncData *)req->data)->comp);
+}
+
+
+void Ioctx::callback(uv_work_t *req) {
+  HandleScope scope;
+
+  AsyncData *asyncdata = (AsyncData *)req->data;
+
+  const unsigned argc = 2;
+  Local<Value> argv[argc] = {
+    Local<Value>::New(Number::New(asyncdata->err)),
+    Local<Value>::New(Buffer::New(asyncdata->buffer, sizeof(asyncdata->buffer))->handle_) };
+  asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+  delete asyncdata;
+}

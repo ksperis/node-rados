@@ -4,6 +4,8 @@
 #include <node.h>
 #include <node_buffer.h>
 #include </usr/include/rados/librados.h>
+#include <ev.h>
+#include <pthread.h>
 
 
 class Rados : public node::ObjectWrap {
@@ -37,9 +39,11 @@ class Ioctx : public node::ObjectWrap {
     v8::Persistent<v8::Function> callback;
     char* buffer;
     int err;
+    rados_completion_t comp;
   } AsyncData;
 
-  static void ack_callback(rados_completion_t comp, void *arg);
+  static void callback(uv_work_t *req);
+  static void wait_complete(uv_work_t *req);
 
   static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
   static v8::Handle<v8::Value> read(const v8::Arguments& args);
