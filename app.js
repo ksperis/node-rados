@@ -1,5 +1,7 @@
 var rados = require('./build/Release/rados');
 
+// EXEMPLE FILE
+
 //==================================
 //     Connect to cluster
 //==================================
@@ -24,7 +26,7 @@ var ioctx = new rados.Ioctx(cluster, "data");
 
 console.log(" --- Sync Read / Write --- ");
 // Sync write_full
-ioctx.write_full("testfile1", new Buffer("01234567"));
+ioctx.write_full("testfile1", new Buffer("01234567ABCXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx"));
 
 // Sync Read
 console.log( "Read data : " + 
@@ -44,7 +46,7 @@ ioctx.aio_write_full("testfile2", new Buffer("01234"), 4
 		}
 
 		// ASync append
-		ioctx.aio_append("testfile2", new Buffer("5678"), 4
+		ioctx.aio_append("testfile2", new Buffer("5678ABCDEF"), 10
 		, function (err) {
 			if (err) {
 				// On write error
@@ -71,6 +73,28 @@ ioctx.aio_write_full("testfile2", new Buffer("01234"), 4
 		// On disk callback
 		console.log( "--> (async) on disk" );
 	});
+
+
+
+//==================================
+//     Read / Write Attributes
+//==================================
+
+ioctx.setxattr("testfile2", "attr1", "first attr");
+ioctx.setxattr("testfile2", "attr2", "second attr");
+ioctx.setxattr("testfile2", "attr3", "last attr value");
+
+
+var attrs = ioctx.getxattrs("testfile2");
+
+console.log(" --- testfile2 xattr : --- ");
+for(var attr in attrs) {
+    if(attrs.hasOwnProperty(attr)){
+        console.log(attr + ': ' + attrs[attr]);
+    }
+}
+
+
 
 ioctx.destroy();
 

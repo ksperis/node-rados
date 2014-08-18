@@ -4,9 +4,9 @@
 #include <node.h>
 #include <node_buffer.h>
 #include </usr/include/rados/librados.h>
-#include <ev.h>
-#include <pthread.h>
 
+
+const size_t DEFAULT_BUFFER_SIZE = 1024;
 
 class Rados : public node::ObjectWrap {
  public:
@@ -47,9 +47,17 @@ class Ioctx : public node::ObjectWrap {
 
   static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
   static v8::Handle<v8::Value> read(const v8::Arguments& args);
+  static v8::Handle<v8::Value> write(const v8::Arguments& args);
   static v8::Handle<v8::Value> write_full(const v8::Arguments& args);
+  static v8::Handle<v8::Value> clone_range(const v8::Arguments& args);
+  static v8::Handle<v8::Value> append(const v8::Arguments& args);
   static v8::Handle<v8::Value> remove(const v8::Arguments& args);
+  static v8::Handle<v8::Value> trunc(const v8::Arguments& args);
   static v8::Handle<v8::Value> stat(const v8::Arguments& args);
+  static v8::Handle<v8::Value> getxattr(const v8::Arguments& args);
+  static v8::Handle<v8::Value> setxattr(const v8::Arguments& args);
+  static v8::Handle<v8::Value> rmxattr(const v8::Arguments& args);
+  static v8::Handle<v8::Value> getxattrs(const v8::Arguments& args);
   static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
   static v8::Handle<v8::Value> aio_append(const v8::Arguments& args);
   static v8::Handle<v8::Value> aio_write_full(const v8::Arguments& args);
