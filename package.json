@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "description" : "Ceph rados client for node.js",
 	"author" : "Laurent Barbe <laurent@ksperis.com>",
+	"main": "./build/Release/rados",
  	"repository" : {
 		"type" : "git",
 		"url" : "git://github.com/ksperis/node-rados.git"
