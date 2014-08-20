@@ -26,7 +26,7 @@ var ioctx = new rados.Ioctx(cluster, "data");
 
 console.log(" --- Sync Read / Write --- ");
 // Sync write_full
-ioctx.write_full("testfile1", new Buffer("01234567ABCXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx"));
+ioctx.write_full("testfile1", new Buffer("01234567ABCDEF"));
 
 // Sync Read
 console.log( "Read data : " + 

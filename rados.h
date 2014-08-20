@@ -38,8 +38,12 @@ class Ioctx : public node::ObjectWrap {
   typedef struct AsyncData {
     v8::Persistent<v8::Function> callback;
     char* buffer;
+    size_t size;
+    uint64_t offset;
     int err;
-    rados_completion_t comp;
+    rados_completion_t* comp;
+    rados_ioctx_t ioctx;
+    char* oid;
   } AsyncData;
 
   static void callback(uv_work_t *req);

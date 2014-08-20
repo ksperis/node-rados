@@ -84,6 +84,13 @@ void Ioctx::Init(Handle<Object> target) {
 Handle<Value> Rados::New(const Arguments& args) {
   HandleScope scope;
 
+  if (args.Length() < 3 ||
+      !args[0]->IsString() ||
+      !args[1]->IsString() ||
+      !args[2]->IsString()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
+
   Rados* obj = new Rados();
   String::Utf8Value cluster_name(args[0]);
   String::Utf8Value user_name(args[1]);
@@ -104,6 +111,11 @@ Handle<Value> Rados::New(const Arguments& args) {
 
 Handle<Value> Ioctx::New(const Arguments& args) {
   HandleScope scope;
+
+  if (args.Length() < 2 ||
+      !args[1]->IsString()) {
+    return ThrowException(Exception::Error(String::New("Bad argument.")));
+  }
 
   Ioctx* obj = new Ioctx();
   Rados* cluster = ObjectWrap::Unwrap<Rados>(args[0]->ToObject());
@@ -207,7 +219,9 @@ Handle<Value> Ioctx::read(const Arguments& args) {
   if (args[3]->IsNumber()) {
     size = args[3]->Uint32Value();
   } else {
-    rados_stat(obj->ioctx, *oid, &size, NULL);
+    if ( rados_stat(obj->ioctx, *oid, &size, NULL) < 0) {
+      return scope.Close(Null());
+    }
   }
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
@@ -358,7 +372,12 @@ Handle<Value> Ioctx::getxattr(const Arguments& args) {
     size = args[2]->Uint32Value();
   } else {
     char temp_buffer[DEFAULT_BUFFER_SIZE];
-    size = rados_getxattr(obj->ioctx, *oid, *name, temp_buffer, 0);
+    int ret = rados_getxattr(obj->ioctx, *oid, *name, temp_buffer, 0);
+    if (ret < 0) {
+      return scope.Close(Null());
+    } else {
+      size = ret;
+    }
   }
   char buffer[size];
 
@@ -435,7 +454,7 @@ Handle<Value> Ioctx::getxattrs(const Arguments& args) {
       const char *val;
       size_t len;
 
-      rados_getxattrs_next(iter, &name, &val, &len);
+      err = rados_getxattrs_next(iter, &name, &val, &len);
       if (err < 0) {
         return scope.Close(Null());
       }
@@ -627,14 +646,27 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
   const unsigned argc_complete = 2;
   Local<Value> argv_complete[argc_complete] = { 
     Local<Value>::New(Number::New(-err)),
-    Local<Value>::New(Buffer::New(buffer, strlen(buffer))->handle_) };
+    Local<Value>::New(Buffer::New(buffer, size)->handle_) };
   cb_complete->Call(Context::GetCurrent()->Global(), argc_complete, argv_complete);
   rados_aio_release(comp);
 
   return scope.Close(Undefined());
 }
 
+/* Test with libuv
 
+      ioctx.write_full("testfile", new Buffer("1234567879ABCD"));
+
+      ioctx.aio_read2("testfile", 14, 0, function (err, data) {
+        if (err) {
+          console.log("async read error = " + err);
+        }
+        else {
+          console.log("data = " + data.toString());
+        }
+      });
+
+*/
 Handle<Value> Ioctx::aio_read2(const Arguments& args) {
   HandleScope scope;
 
@@ -653,18 +685,17 @@ Handle<Value> Ioctx::aio_read2(const Arguments& args) {
   Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
 
   AsyncData* asyncdata = new AsyncData;
-  char buffer[size];
-  rados_completion_t comp;
-
   asyncdata->callback = cb_complete;
-  asyncdata->buffer = buffer;
-  asyncdata->comp = &comp;
-
-  rados_aio_create_completion(NULL, NULL, NULL, &comp);
-  rados_aio_read(obj->ioctx, *oid, comp, buffer, size, offset);
-
+  asyncdata->buffer = (char *)malloc(sizeof(char)*size);
+  asyncdata->size = size;
+  asyncdata->offset = offset;
+  asyncdata->ioctx = obj->ioctx;
+  asyncdata->oid = (char *)malloc(strlen(*oid));
+  strcpy(asyncdata->oid, *oid);
 
   uv_work_t *req = new uv_work_t;
+  req->data = asyncdata;
+
   uv_queue_work(
     uv_default_loop(),
     req,
@@ -672,26 +703,35 @@ Handle<Value> Ioctx::aio_read2(const Arguments& args) {
     (uv_after_work_cb)callback
   );
 
-  rados_aio_release(comp);
-
   return scope.Close(Undefined());
 }
 
-
 void Ioctx::wait_complete(uv_work_t *req) {
-  rados_aio_wait_for_complete(((AsyncData *)req->data)->comp);
+  AsyncData *asyncdata = (AsyncData *)req->data;
+  rados_completion_t comp;
+  rados_aio_create_completion(NULL, NULL, NULL, &comp);
+  int err = rados_aio_read(asyncdata->ioctx, asyncdata->oid, comp, asyncdata->buffer, asyncdata->size, asyncdata->offset);
+  if (err < 0) {
+    asyncdata->err = -err;
+    rados_aio_release(comp);
+    return;
+  }
+  asyncdata->err = rados_aio_wait_for_complete(comp);
+  if (err < 0) {
+    asyncdata->err = -err;
+  }
+  rados_aio_release(comp);
 }
-
 
 void Ioctx::callback(uv_work_t *req) {
   HandleScope scope;
 
   AsyncData *asyncdata = (AsyncData *)req->data;
-
+  
   const unsigned argc = 2;
   Local<Value> argv[argc] = {
     Local<Value>::New(Number::New(asyncdata->err)),
-    Local<Value>::New(Buffer::New(asyncdata->buffer, strlen(asyncdata->buffer))->handle_) };
+    Local<Value>::New(Buffer::New(asyncdata->buffer, asyncdata->size)->handle_) };
   asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);
   delete asyncdata;
 }
