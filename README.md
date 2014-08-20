@@ -15,6 +15,13 @@ Installation
 Usage
 -----
 
+Load module :
+
+	var rados = require('./build/Release/rados');
+	// or, if installed as module in node_modules
+	var rados = require('rados');
+
+
 Connect to cluster :
 
 	cluster = new rados.Rados(cluster, user, conffile)	// return Rados object
@@ -25,9 +32,16 @@ Connect to cluster :
 	cluster.pool_list()									// return Array (null on error)
 
 
-Create Ioctx :
+Create / Delete Ioctx :
 
 	ioctx = new rados.Ioctx(cluster, poolname)			// on error, throw error
+	ioctx.delete()
+
+
+Manage snapshots :
+
+	ioctx.snap_create()									// on err, return err code
+	ioctx.snap_remove()									// on err, return err code
 
 
 Sync Buffered functions :
@@ -52,7 +66,7 @@ Manage Attr :
 
 AIO functions (testing) :
 
-	ioctx.aio_write(oid, buffer, size, offset, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_append(oid, buffer, size, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_write_full(oid, buffer, size, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_read(oid, size, function (err) {}, function complete (err) {})
+	ioctx.aio_write(oid, buffer, size, offset, function (err) {})
+	ioctx.aio_read(oid, size, offset, function (err, data) {})
+	ioctx.aio_flush()
+	ioctx.aio_flush_async(function (err) {})

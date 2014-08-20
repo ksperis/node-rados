@@ -38,18 +38,19 @@ class Ioctx : public node::ObjectWrap {
   typedef struct AsyncData {
     v8::Persistent<v8::Function> callback;
     char* buffer;
+    int cb_buffer;
     size_t size;
     uint64_t offset;
     int err;
     rados_completion_t* comp;
-    rados_ioctx_t ioctx;
-    char* oid;
   } AsyncData;
 
-  static void callback(uv_work_t *req);
+  static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);
 
   static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
+  static v8::Handle<v8::Value> snap_create(const v8::Arguments& args);
+  static v8::Handle<v8::Value> snap_remove(const v8::Arguments& args);
   static v8::Handle<v8::Value> read(const v8::Arguments& args);
   static v8::Handle<v8::Value> write(const v8::Arguments& args);
   static v8::Handle<v8::Value> write_full(const v8::Arguments& args);
@@ -62,11 +63,10 @@ class Ioctx : public node::ObjectWrap {
   static v8::Handle<v8::Value> setxattr(const v8::Arguments& args);
   static v8::Handle<v8::Value> rmxattr(const v8::Arguments& args);
   static v8::Handle<v8::Value> getxattrs(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_append(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_write_full(const v8::Arguments& args);
   static v8::Handle<v8::Value> aio_read(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_read2(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_flush(const v8::Arguments& args);
+  static v8::Handle<v8::Value> aio_flush_async(const v8::Arguments& args);
   static v8::Persistent<v8::Function> constructor;
 };
 

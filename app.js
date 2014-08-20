@@ -24,7 +24,7 @@ console.log( "ls pools : " + cluster.pool_list() );
 //==================================
 var ioctx = new rados.Ioctx(cluster, "data");
 
-console.log(" --- Sync Read / Write --- ");
+console.log(" --- RUN Sync Read / Write --- ");
 // Sync write_full
 ioctx.write_full("testfile1", new Buffer("01234567ABCDEF"));
 
@@ -35,67 +35,43 @@ console.log( "Read data : " +
 // Remove
 ioctx.remove("testfile1");
 
-console.log(" --- ASync Read / Write --- ");
+console.log(" --- RUN ASync Read / Write --- ");
 // ASync write_full
-ioctx.aio_write_full("testfile2", new Buffer("01234"), 4
-	, function (err) {
-		if (err) {
-			// On write error
-			console.log("Error " + err);
-			throw err;
-		}
-
-		// ASync append
-		ioctx.aio_append("testfile2", new Buffer("5678ABCDEF"), 10
-		, function (err) {
-			if (err) {
-				// On write error
-				console.log("Error " + err);
-				throw err;
-			}
-
-			ioctx.aio_write("testfile2", new Buffer("XX"), 2, 3, function (err) {} , function (err) {} , function (err) {});
-
-			ioctx.aio_read("testfile2", ioctx.stat("testfile2").psize, 0, function (err) {}, function (err, data) {
-				console.log( "Read Callback : " + data);
-			} );
-			
-		}
-		, function (err) {} 
-		, function (err) {});
-
+ioctx.aio_write("testfile2", new Buffer("1234567879ABCD"), 16, 0, function (err) {
+	if (err) {
+	  throw err;
 	}
-	, function () {
-		// In memory callback
-		console.log( "--> (async) in memory" );
+
+	ioctx.aio_read("testfile2", 16, 0, function (err, data) {
+	if (err) {
+	  throw err;
 	}
-	, function () {
-		// On disk callback
-		console.log( "--> (async) on disk" );
+
+	 console.log("[async callback] data = " + data.toString());
+
 	});
 
+});
 
 
 //==================================
 //     Read / Write Attributes
 //==================================
 
-ioctx.setxattr("testfile2", "attr1", "first attr");
-ioctx.setxattr("testfile2", "attr2", "second attr");
-ioctx.setxattr("testfile2", "attr3", "last attr value");
+console.log(" --- RUN Attributes Read / Write --- ");
 
+ioctx.setxattr("testfile3", "attr1", "first attr");
+ioctx.setxattr("testfile3", "attr2", "second attr");
+ioctx.setxattr("testfile3", "attr3", "last attr value");
 
 var attrs = ioctx.getxattrs("testfile2");
 
-console.log(" --- testfile2 xattr : --- ");
-for(var attr in attrs) {
-    if(attrs.hasOwnProperty(attr)){
-        console.log(attr + ': ' + attrs[attr]);
-    }
-}
+console.log("testfile3 xattr = %j", attrs);
 
 
+// destroy ioctx and close cluster after aio_flush
+ioctx.aio_flush_async(function (err) {
+	ioctx.destroy();
+	cluster.shutdown();
+});
 
-ioctx.destroy();
-
-cluster.shutdown();
