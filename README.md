@@ -49,10 +49,3 @@ Manage Attr :
 	ioctx.rmxattr(oid, attr)							// on err, return err code
 	ioctx.getxattrs(oid)								// return object with attributes (null on error)
 
-
-AIO functions (testing) :
-
-	ioctx.aio_write(oid, buffer, size, offset, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_append(oid, buffer, size, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_write_full(oid, buffer, size, function (err) {}, function complete (err) {}, function safe (err) {})
-	ioctx.aio_read(oid, size, function (err) {}, function complete (err) {})
