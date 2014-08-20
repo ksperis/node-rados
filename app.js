@@ -35,46 +35,6 @@ console.log( "Read data : " +
 // Remove
 ioctx.remove("testfile1");
 
-console.log(" --- ASync Read / Write --- ");
-// ASync write_full
-ioctx.aio_write_full("testfile2", new Buffer("01234"), 4
-	, function (err) {
-		if (err) {
-			// On write error
-			console.log("Error " + err);
-			throw err;
-		}
-
-		// ASync append
-		ioctx.aio_append("testfile2", new Buffer("5678ABCDEF"), 10
-		, function (err) {
-			if (err) {
-				// On write error
-				console.log("Error " + err);
-				throw err;
-			}
-
-			ioctx.aio_write("testfile2", new Buffer("XX"), 2, 3, function (err) {} , function (err) {} , function (err) {});
-
-			ioctx.aio_read("testfile2", ioctx.stat("testfile2").psize, 0, function (err) {}, function (err, data) {
-				console.log( "Read Callback : " + data);
-			} );
-			
-		}
-		, function (err) {} 
-		, function (err) {});
-
-	}
-	, function () {
-		// In memory callback
-		console.log( "--> (async) in memory" );
-	}
-	, function () {
-		// On disk callback
-		console.log( "--> (async) on disk" );
-	});
-
-
 
 //==================================
 //     Read / Write Attributes
