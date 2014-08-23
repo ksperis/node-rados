@@ -18,7 +18,7 @@ Usage
 Load module :
 
 	var rados = require('./build/Release/rados');
-	// or, if installed as module in node_modules
+	// or, if installed whith npm in node_modules
 	var rados = require('rados');
 
 
@@ -40,18 +40,19 @@ Create / Delete Ioctx :
 
 Manage snapshots :
 
-	ioctx.snap_create()									// on err, return err code
-	ioctx.snap_remove()									// on err, return err code
+	ioctx.snap_create(snapname)							// on err, return err code
+	ioctx.snap_remove(snapname)							// on err, return err code
+	ioctx.snap_rollback(oid, snapname)					// on err, return err code
 
 
 Sync Buffered functions :
 
-	ioctx.read(oid, size[,offset])						// return Buffer (null on error)
+	ioctx.read(oid, [size], [offset])					// return Buffer (null on error)
 	ioctx.write(oid, buffer, [size], [offset])			// on err, return err code
 	ioctx.write_full(oid, buffer, [size])				// on err, return err code
-	ioctx.clone_range(src, src_off, dst, dst_off, size)	// on err, return err code
+	ioctx.clone_range(dst, dst_off, src, src_off, size)	// on err, return err code
 	ioctx.append(oid, buffer, [size])					// on err, return err code
-	ioctx.trunk(oid, size)								// on err, return err code
+	ioctx.trunc(oid, size)								// on err, return err code
 	ioctx.remove(oid)									// on err, return err code
 	ioctx.stat(oid)										// return Object with attr psize, pmtime
 
@@ -66,7 +67,9 @@ Manage Attr :
 
 AIO functions (testing) :
 
-	ioctx.aio_write(oid, buffer, size, offset, function (err) {})
 	ioctx.aio_read(oid, size, offset, function (err, data) {})
+	ioctx.aio_write(oid, buffer, size, offset, function (err) {})
+	ioctx.aio_append(oid, buffer, size, function (err) {})
+	ioctx.aio_write_full(oid, buffer, size, function (err) {})
 	ioctx.aio_flush()
 	ioctx.aio_flush_async(function (err) {})
