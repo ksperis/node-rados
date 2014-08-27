@@ -1,6 +1,6 @@
 {
 	"name": "rados",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description" : "Ceph rados client for node.js",
 	"author" : "Laurent Barbe <laurent@ksperis.com>",
 	"main": "./build/Release/rados",
