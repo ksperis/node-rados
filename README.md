@@ -9,7 +9,7 @@ Installation
 From npm:
 
 	sudo apt-get install librados-dev
-	npm install node-rados
+	npm install rados
 
 From source:
 
