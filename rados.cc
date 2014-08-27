@@ -92,17 +92,25 @@ void Ioctx::Init(Handle<Object> target) {
 Handle<Value> Rados::New(const Arguments& args) {
   HandleScope scope;
 
+/*
   if (args.Length() < 3 ||
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
     return ThrowException(Exception::Error(String::New("Bad argument.")));
   }
+*/
 
   Rados* obj = new Rados();
+/*
   String::Utf8Value cluster_name(args[0]);
   String::Utf8Value user_name(args[1]);
   String::Utf8Value conffile(args[2]);
+*/
+  Local<Object> param = args[0]->ToObject();
+  String::Utf8Value cluster_name(param->Get(String::NewSymbol("cluster")));
+  String::Utf8Value user_name(param->Get(String::NewSymbol("user")));
+  String::Utf8Value conffile(param->Get(String::NewSymbol("conffile")));
   uint64_t flags = 0;
 
   if ( rados_create2(&obj->cluster, *cluster_name, *user_name, flags) != 0 ) {
