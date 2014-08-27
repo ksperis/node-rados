@@ -566,7 +566,8 @@ Handle<Value> Ioctx::stat(const Arguments& args) {
 void Ioctx::wait_complete(uv_work_t *req) {
   AsyncData* asyncdata = (AsyncData *)req->data;
 
-  int err = rados_aio_wait_for_complete(*asyncdata->comp);
+  rados_aio_wait_for_complete(*asyncdata->comp);
+  int err = rados_aio_get_return_value(*asyncdata->comp);
   if (err < 0) {
     asyncdata->err = -err;
   }
@@ -610,16 +611,21 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   String::Utf8Value oid(args[0]);
+  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
   size_t size;
   if (args[1]->IsNumber()) {
     size = args[1]->Uint32Value();
   } else {
-    if ( rados_stat(obj->ioctx, *oid, &size, NULL) < 0) {
+    int err = rados_stat(obj->ioctx, *oid, &size, NULL);
+    if (err < 0) {
+      const unsigned argc = 1;
+      Local<Value> argv[argc] = {
+        Local<Value>::New(Number::New(-err)) };
+      cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
       return scope.Close(Null());
     }
   }
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
-  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
 
   AsyncData *asyncdata = new AsyncData;
   char *buffer = new char[size];
