@@ -6,6 +6,13 @@ Ceph rados client for node
 Installation
 -------------
 
+From npm:
+
+	sudo apt-get install librados-dev
+	npm install node-rados
+
+From source:
+
 	sudo apt-get install nodejs node-gyp librados-dev
 	git clone https://github.com/ksperis/node-rados
 	cd node-rados
