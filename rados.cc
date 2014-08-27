@@ -76,9 +76,9 @@ void Ioctx::Init(Handle<Object> target) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write"),
       FunctionTemplate::New(aio_write)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_append"),
-      FunctionTemplate::New(aio_write)->GetFunction());
+      FunctionTemplate::New(aio_append)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write_full"),
-      FunctionTemplate::New(aio_write)->GetFunction());
+      FunctionTemplate::New(aio_write_full)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_flush"),
       FunctionTemplate::New(aio_flush)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_flush_async"),
