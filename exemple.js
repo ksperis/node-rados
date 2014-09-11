@@ -5,11 +5,7 @@ var rados = require('./build/Release/rados');
 //==================================
 //     Connect to cluster
 //==================================
-var cluster = new rados.Rados( {
-	'cluster':'ceph',
-	'user':"client.admin",
-	'conffile':'/etc/ceph/ceph.conf'
-});
+var cluster = new rados.Rados( "ceph", "client.admin", "/etc/ceph/ceph.conf");
 
 var err = cluster.connect();
 if (err) {
