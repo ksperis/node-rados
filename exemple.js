@@ -116,6 +116,40 @@ while (bytesRead < fileSize) {
 }
 
 
+//   Write Async file in chunks
+var filename="/tmp/bigfile"
+var object = "bigfile";
+
+
+fs.open(filename, 'r', function(err, fd) {
+    if (err) { throw "Read error"; }
+
+    fs.fstat(fd, function(err, stats) {
+        if (err) { throw "Stats error"; }
+
+        var fileSize=stats.size,
+            chunkSize=51200,
+            buffer=new Buffer(chunkSize),
+            totalBytesRead = 0;
+            bytesRead = 0;
+
+        while (totalBytesRead < fileSize) {
+            bytesRead = fs.readSync(fd, buffer, 0, chunkSize, totalBytesRead);
+            ioctx.aio_write(object, buffer, bytesRead, totalBytesRead, function (err) {
+                if (err) { throw err; }
+            });
+
+            totalBytesRead += bytesRead;
+        }
+        fs.close(fd);
+        ioctx.aio_flush_async(function (err) {
+            ioctx.destroy();
+            cluster.shutdown();
+        });
+    });
+});
+
+
 //   Use snapshot
 ioctx.write_full("testfile10", new Buffer("version1"));
 ioctx.snap_create("snaptest1");
