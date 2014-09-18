@@ -22,7 +22,7 @@ console.log( "ls pools : " + cluster.pool_list() );
 //==================================
 //     Create IOCTX
 //==================================
-var ioctx = new rados.Ioctx(cluster, "data");
+var ioctx = new rados.Ioctx(cluster, "rbd");
 
 console.log(" --- RUN Sync Write / Read --- ");
 // Sync write_full
