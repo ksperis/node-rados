@@ -11,7 +11,11 @@
 	"dependencies" : {
 		"node-gyp": ">0.10.0"
 	},
+	"devDependencies" : {
+		"nodeunit": "*"
+	},
 	"scripts": {
-        "preinstall": "node-gyp rebuild"
+        "preinstall": "node-gyp rebuild",
+        "test": "node_modules/.bin/nodeunit test/*"
     }
 }
