@@ -105,8 +105,7 @@ module.exports = {
   'aio_write': function(test) {
     var ioctx = this.ioctx;
     ioctx.aio_write('testfile', new Buffer('ABCDEFG'), null, 3, function(err) {
-      // aio_write returns 0 on success
-      test.equal(err, 0);
+      test.ifError(err);
       test.equal(ioctx.read('testfile').toString(), '012ABCDEFGABCDEFG\0\0\0');
       test.done();
     });
@@ -115,8 +114,7 @@ module.exports = {
   'aio_append': function(test) {
     var ioctx = this.ioctx;
     ioctx.aio_append('testfile', new Buffer([0,0,0]), null, function(err) {
-      // aio_append returns 0 on success
-      test.equal(err, 0);
+      test.ifError(err);
       test.equal(ioctx.read('testfile').toString(), '012ABCDEFGABCDEFG\0\0\0\0\0\0');
       test.done();
     });
@@ -125,8 +123,7 @@ module.exports = {
   'aio_write_full': function(test) {
     var ioctx = this.ioctx;
     ioctx.aio_write_full('testfile', new Buffer('ABC'), null, function(err) {
-      // aio_write_full returns 0 on success
-      test.equal(err, 0);
+      test.ifError(err);
       test.equal(ioctx.read('testfile').toString(), 'ABC');
       test.done();
     });
@@ -140,8 +137,7 @@ module.exports = {
   'aio_flush_async': function(test) {
     var ioctx = this.ioctx;
     ioctx.aio_flush_async(function(err) {
-      // aio_flush_async returns 0 on success
-      test.equal(err, 0);
+      test.ifError(err);
       test.done();
     });
   },

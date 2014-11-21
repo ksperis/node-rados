@@ -587,14 +587,16 @@ void Ioctx::callback_complete(uv_work_t *req) {
   if (asyncdata->cb_buffer) {
     const unsigned argc = 2;
     Local<Value> argv[argc] = {
-      NanNew<Number>(asyncdata->err),
+      NanNull(),
       NanBufferUse(asyncdata->buffer, asyncdata->size) };
+    if (asyncdata->err) argv[0] = NanNew<Number>(asyncdata->err);
     asyncdata->callback.Call(argc, argv);
   }
   else {
     const unsigned argc = 1;
     Local<Value> argv[argc] = {
-      NanNew<Number>(asyncdata->err) };
+      NanNull() };
+    if (asyncdata->err) argv[0] = NanNew<Number>(asyncdata->err);
     asyncdata->callback.Call(argc, argv);
   }
   
