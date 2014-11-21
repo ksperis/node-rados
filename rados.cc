@@ -816,7 +816,7 @@ Handle<Value> Ioctx::aio_flush_async(const Arguments& args) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
-  Persistent<Function> cb = Persistent<Function>::New(Local<Function>::Cast(args[1]));
+  Persistent<Function> cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
