@@ -8,95 +8,97 @@
 using namespace v8;
 using namespace node;
 
-Persistent<Function> Rados::constructor;
+Persistent<FunctionTemplate> Rados::constructor;
 Rados::Rados() {};
 Rados::~Rados() {};
 
-Persistent<Function> Ioctx::constructor;
+Persistent<FunctionTemplate> Ioctx::constructor;
 Ioctx::Ioctx() {};
 Ioctx::~Ioctx() {};
 
 
 void Rados::Init(Handle<Object> target) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("Rados"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew<String>("Rados"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("connect"),
-      FunctionTemplate::New(connect)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("shutdown"),
-      FunctionTemplate::New(shutdown)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("get_fsid"),
-      FunctionTemplate::New(get_fsid)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("pool_list"),
-      FunctionTemplate::New(pool_list)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("connect"),
+      NanNew<FunctionTemplate>(connect)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("shutdown"),
+      NanNew<FunctionTemplate>(shutdown)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("get_fsid"),
+      NanNew<FunctionTemplate>(get_fsid)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_list"),
+      NanNew<FunctionTemplate>(pool_list)->GetFunction());
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("Rados"), constructor);
+  NanAssignPersistent(constructor, tpl);
+  target->Set(NanNew<String>("Rados"),
+      NanNew<FunctionTemplate>(constructor)->GetFunction());
 }
 
 
 void Ioctx::Init(Handle<Object> target) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("Ioctx"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew<String>("Ioctx"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("destroy"),
-      FunctionTemplate::New(destroy)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("snap_create"),
-      FunctionTemplate::New(snap_create)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("snap_remove"),
-      FunctionTemplate::New(snap_remove)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("snap_rollback"),
-      FunctionTemplate::New(snap_rollback)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("read"),
-      FunctionTemplate::New(read)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("write"),
-      FunctionTemplate::New(write)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("write_full"),
-      FunctionTemplate::New(write_full)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("clone_range"),
-      FunctionTemplate::New(clone_range)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("append"),
-      FunctionTemplate::New(append)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("remove"),
-      FunctionTemplate::New(remove)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("trunc"),
-      FunctionTemplate::New(trunc)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("stat"),
-      FunctionTemplate::New(stat)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getxattr"),
-      FunctionTemplate::New(getxattr)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("setxattr"),
-      FunctionTemplate::New(setxattr)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("rmxattr"),
-      FunctionTemplate::New(rmxattr)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getxattrs"),
-      FunctionTemplate::New(getxattrs)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_read"),
-      FunctionTemplate::New(aio_read)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write"),
-      FunctionTemplate::New(aio_write)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_append"),
-      FunctionTemplate::New(aio_append)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_write_full"),
-      FunctionTemplate::New(aio_write_full)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_flush"),
-      FunctionTemplate::New(aio_flush)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("aio_flush_async"),
-      FunctionTemplate::New(aio_flush_async)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("destroy"),
+      NanNew<FunctionTemplate>(destroy)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("snap_create"),
+      NanNew<FunctionTemplate>(snap_create)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("snap_remove"),
+      NanNew<FunctionTemplate>(snap_remove)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("snap_rollback"),
+      NanNew<FunctionTemplate>(snap_rollback)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("read"),
+      NanNew<FunctionTemplate>(read)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("write"),
+      NanNew<FunctionTemplate>(write)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("write_full"),
+      NanNew<FunctionTemplate>(write_full)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("clone_range"),
+      NanNew<FunctionTemplate>(clone_range)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("append"),
+      NanNew<FunctionTemplate>(append)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("remove"),
+      NanNew<FunctionTemplate>(remove)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("trunc"),
+      NanNew<FunctionTemplate>(trunc)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("stat"),
+      NanNew<FunctionTemplate>(stat)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getxattr"),
+      NanNew<FunctionTemplate>(getxattr)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("setxattr"),
+      NanNew<FunctionTemplate>(setxattr)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("rmxattr"),
+      NanNew<FunctionTemplate>(rmxattr)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getxattrs"),
+      NanNew<FunctionTemplate>(getxattrs)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_read"),
+      NanNew<FunctionTemplate>(aio_read)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_write"),
+      NanNew<FunctionTemplate>(aio_write)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_append"),
+      NanNew<FunctionTemplate>(aio_append)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_write_full"),
+      NanNew<FunctionTemplate>(aio_write_full)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_flush"),
+      NanNew<FunctionTemplate>(aio_flush)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_flush_async"),
+      NanNew<FunctionTemplate>(aio_flush_async)->GetFunction());
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
-  target->Set(String::NewSymbol("Ioctx"), constructor);
+  NanAssignPersistent(constructor, tpl);
+  target->Set(NanNew<String>("Ioctx"),
+      NanNew<FunctionTemplate>(constructor)->GetFunction());
 }
 
 
-Handle<Value> Rados::New(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Rados::New) {
+  NanScope();
 
   if (args.Length() < 3 ||
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Rados* obj = new Rados();
@@ -106,75 +108,75 @@ Handle<Value> Rados::New(const Arguments& args) {
   uint64_t flags = 0;
 
   if ( rados_create2(&obj->cluster, *cluster_name, *user_name, flags) != 0 ) {
-    return ThrowException(Exception::Error(String::New("create rados cluster failed")));
+    NanThrowError("create rados cluster failed");
   }
   if ( rados_conf_read_file(obj->cluster, *conffile) != 0 ) {
-    return ThrowException(Exception::Error(String::New("read conffile failed")));
+    NanThrowError("read conffile failed");
   }
 
   obj->Wrap(args.This());
-  return args.This();
+  NanReturnValue(args.This());
 }
 
 
-Handle<Value> Ioctx::New(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::New) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[1]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = new Ioctx();
   Rados* cluster = ObjectWrap::Unwrap<Rados>(args[0]->ToObject());
   String::Utf8Value pool(args[1]);
   if ( rados_ioctx_create(cluster->cluster, *pool, &obj->ioctx) != 0 ) {
-    return ThrowException(Exception::Error(String::New("create Ioctx failed")));
+    NanThrowError("create Ioctx failed");
   }
 
   obj->Wrap(args.This());
-  return args.This();
+  NanReturnThis();
 }
 
 
-Handle<Value> Rados::connect(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Rados::connect) {
+  NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
   int err = rados_connect(obj->cluster);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Rados::shutdown(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Rados::shutdown) {
+  NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
   rados_shutdown(obj->cluster);
 
-  return scope.Close(Null());
+  NanReturnNull();
 }
 
 
-Handle<Value> Rados::get_fsid(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Rados::get_fsid) {
+  NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
   
   char fsid[37];
   if ( rados_cluster_fsid(obj->cluster, fsid, sizeof(fsid)) < 0) {
-    scope.Close(Null());
+    NanReturnNull();
   }
 
-  return scope.Close(String::New(fsid));
+  NanReturnValue(NanNew<String>(fsid));
 }
 
 
-Handle<Value> Rados::pool_list(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Rados::pool_list) {
+  NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
   
@@ -184,42 +186,42 @@ Handle<Value> Rados::pool_list(const Arguments& args) {
   char buffer[buff_size];
   int r = rados_pool_list(obj->cluster, buffer, sizeof(buffer));
   if (r != buff_size) {
-    scope.Close(Null());
+    NanReturnNull();
   }
 
-  Local<Array> pools = Array::New();
+  Local<Array> pools = NanNew<Array>();
   const char *b = buffer;
   uint32_t array_id = 0;
   while (1) {
       if (b[array_id] == '\0') {
           break;
       }
-      pools->Set(array_id, String::New(b));
+      pools->Set(array_id, NanNew<String>(b));
       b += strlen(b) + 1;
       array_id++;
   }
 
-  return scope.Close(pools);
+  NanReturnValue(pools);
 }
 
 
-Handle<Value> Ioctx::destroy(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::destroy) {
+  NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
 
   rados_ioctx_destroy(obj->ioctx);
 
-  return scope.Close(Null());
+  NanReturnNull();
 }
 
 
-Handle<Value> Ioctx::snap_create(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::snap_create) {
+  NanScope();
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -227,16 +229,16 @@ Handle<Value> Ioctx::snap_create(const Arguments& args) {
 
   int err = rados_ioctx_snap_create(obj->ioctx, *snapname);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::snap_remove(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::snap_remove) {
+  NanScope();
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -244,17 +246,17 @@ Handle<Value> Ioctx::snap_remove(const Arguments& args) {
 
   int err = rados_ioctx_snap_remove(obj->ioctx, *snapname);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::snap_rollback(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::snap_rollback) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[0]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -263,16 +265,16 @@ Handle<Value> Ioctx::snap_rollback(const Arguments& args) {
 
   int err = rados_ioctx_snap_rollback(obj->ioctx, *oid, *snapname);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::read(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::read) {
+  NanScope();
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -282,7 +284,7 @@ Handle<Value> Ioctx::read(const Arguments& args) {
     size = args[1]->Uint32Value();
   } else {
     if ( rados_stat(obj->ioctx, *oid, &size, NULL) < 0) {
-      return scope.Close(Null());
+      NanReturnNull();
     }
   }
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
@@ -292,20 +294,20 @@ Handle<Value> Ioctx::read(const Arguments& args) {
   int err = rados_read(obj->ioctx, *oid, buffer, size, offset);
 
   if (err < 0) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
 
-  return scope.Close(Buffer::New(buffer, size)->handle_);
+  NanReturnValue(NanNewBufferHandle(buffer, size));
 }
 
 
-Handle<Value> Ioctx::write(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::write) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -316,17 +318,17 @@ Handle<Value> Ioctx::write(const Arguments& args) {
 
   int err = rados_write(obj->ioctx, *oid, buffer, size, offset);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::write_full(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::write_full) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -336,12 +338,12 @@ Handle<Value> Ioctx::write_full(const Arguments& args) {
 
   int err = rados_write_full(obj->ioctx, *oid, buffer, size);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::clone_range(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::clone_range) {
+  NanScope();
 
   if (args.Length() < 5 ||
       !args[0]->IsString() ||
@@ -349,7 +351,7 @@ Handle<Value> Ioctx::clone_range(const Arguments& args) {
       !args[2]->IsString() ||
       !args[3]->IsNumber() ||
       !args[4]->IsNumber()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -361,17 +363,17 @@ Handle<Value> Ioctx::clone_range(const Arguments& args) {
 
   int err = rados_clone_range(obj->ioctx, *dst, dst_off, *src, src_off, size);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::append(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::append) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -381,16 +383,16 @@ Handle<Value> Ioctx::append(const Arguments& args) {
 
   int err = rados_append(obj->ioctx, *oid, buffer, size);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::remove(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::remove) {
+  NanScope();
 
   if (args.Length() != 1 ||
       !args[0]->IsString()) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -398,17 +400,17 @@ Handle<Value> Ioctx::remove(const Arguments& args) {
 
   int err = rados_remove(obj->ioctx, *oid);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::trunc(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::trunc) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsNumber()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -417,17 +419,17 @@ Handle<Value> Ioctx::trunc(const Arguments& args) {
 
   int err = rados_trunc(obj->ioctx, *oid, size);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::getxattr(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::getxattr) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -440,7 +442,7 @@ Handle<Value> Ioctx::getxattr(const Arguments& args) {
     char temp_buffer[DEFAULT_BUFFER_SIZE];
     int ret = rados_getxattr(obj->ioctx, *oid, *name, temp_buffer, 0);
     if (ret < 0) {
-      return scope.Close(Null());
+      NanReturnNull();
     } else {
       size = ret;
     }
@@ -450,21 +452,21 @@ Handle<Value> Ioctx::getxattr(const Arguments& args) {
   int err = rados_getxattr(obj->ioctx, *oid, *name, buffer, size);
 
   if (err < 0) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
 
-  return scope.Close(String::New(buffer, size));
+  NanReturnValue(NanNew<String>(buffer, size));
 }
 
 
-Handle<Value> Ioctx::setxattr(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::setxattr) {
+  NanScope();
 
   if (args.Length() < 3 ||
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -475,17 +477,17 @@ Handle<Value> Ioctx::setxattr(const Arguments& args) {
 
   int err = rados_setxattr(obj->ioctx, *oid, *name, *buffer, size);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::rmxattr(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::rmxattr) {
+  NanScope();
 
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -494,26 +496,26 @@ Handle<Value> Ioctx::rmxattr(const Arguments& args) {
 
   int err = rados_rmxattr(obj->ioctx, *oid, *name);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::getxattrs(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::getxattrs) {
+  NanScope();
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   String::Utf8Value oid(args[0]);
   rados_xattrs_iter_t iter;
 
-  Local<Object> xattrs = Object::New();
+  Local<Object> xattrs = NanNew<Object>();
   int err = rados_getxattrs(obj->ioctx, *oid, &iter);
   if (err < 0) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
   while (1) {
       const char *name;
@@ -522,26 +524,26 @@ Handle<Value> Ioctx::getxattrs(const Arguments& args) {
 
       err = rados_getxattrs_next(iter, &name, &val, &len);
       if (err < 0) {
-        return scope.Close(Null());
+        NanReturnNull();
       }
       if (name == NULL) {
           break;
       }
 
-      xattrs->Set(String::NewSymbol(name), String::New(val, len));
+      xattrs->Set(NanNew<String>(name), NanNew<String>(val, len));
   }
   rados_getxattrs_end(iter);
 
-  return scope.Close(xattrs);
+  NanReturnValue(xattrs);
 }
 
 
-Handle<Value> Ioctx::stat(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::stat) {
+  NanScope();
 
   if (args.Length() != 1 ||
       !args[0]->IsString()) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -551,15 +553,15 @@ Handle<Value> Ioctx::stat(const Arguments& args) {
 
   int err = rados_stat(obj->ioctx, *oid, &psize, &pmtime);
   if (err < 0) {
-    return scope.Close(Null());
+    NanReturnNull();
   }
 
-  Local<Object> stat = Object::New( );
-  stat->Set( String::NewSymbol("oid"), String::New(*oid) );
-  stat->Set( String::NewSymbol("psize"), Number::New(psize) );
-  stat->Set( String::NewSymbol("pmtime"), Number::New(pmtime) );
+  Local<Object> stat = NanNew<Object>();
+  stat->Set( NanNew<String>("oid"), NanNew<String>(*oid) );
+  stat->Set( NanNew<String>("psize"), NanNew<Number>(psize) );
+  stat->Set( NanNew<String>("pmtime"), NanNew<Number>(pmtime) );
 
-  return scope.Close(stat);
+  NanReturnValue(stat);
 }
 
 
@@ -578,40 +580,39 @@ void Ioctx::wait_complete(uv_work_t *req) {
 
 
 void Ioctx::callback_complete(uv_work_t *req) {
-  HandleScope scope;
+  NanScope();
 
   AsyncData *asyncdata = (AsyncData *)req->data;
 
   if (asyncdata->cb_buffer) {
     const unsigned argc = 2;
     Local<Value> argv[argc] = {
-      Local<Value>::New(Number::New(asyncdata->err)),
-      Local<Value>::New(Buffer::New(asyncdata->buffer, asyncdata->size)->handle_) };
-    asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+      NanNew<Number>(asyncdata->err),
+      NanBufferUse(asyncdata->buffer, asyncdata->size) };
+    asyncdata->callback.Call(argc, argv);
   }
   else {
     const unsigned argc = 1;
     Local<Value> argv[argc] = {
-      Local<Value>::New(Number::New(asyncdata->err)) };
-    asyncdata->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+      NanNew<Number>(asyncdata->err) };
+    asyncdata->callback.Call(argc, argv);
   }
   
   delete asyncdata;
 }
 
 
-Handle<Value> Ioctx::aio_read(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_read) {
+  NanScope();
 
   if (args.Length() < 4 ||
       !args[0]->IsString() ||
       !args[3]->IsFunction()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   String::Utf8Value oid(args[0]);
-  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
   size_t size;
   if (args[1]->IsNumber()) {
     size = args[1]->Uint32Value();
@@ -620,9 +621,9 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
     if (err < 0) {
       const unsigned argc = 1;
       Local<Value> argv[argc] = {
-        Local<Value>::New(Number::New(-err)) };
-      cb_complete->Call(Context::GetCurrent()->Global(), argc, argv);
-      return scope.Close(Null());
+        NanNew<Number>(-err) };
+      NanMakeCallback(NanGetCurrentContext()->Global(), args[3].As<Function>(), argc, argv);
+      NanReturnNull();
     }
   }
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
@@ -631,7 +632,7 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
   char *buffer = new char[size];
   rados_completion_t *comp = new rados_completion_t;
 
-  asyncdata->callback = cb_complete;
+  asyncdata->callback.SetFunction(args[3].As<Function>());
   asyncdata->buffer = buffer;
   asyncdata->cb_buffer = true;
   asyncdata->size = size;
@@ -654,18 +655,18 @@ Handle<Value> Ioctx::aio_read(const Arguments& args) {
     (uv_after_work_cb)callback_complete
   );
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
-Handle<Value> Ioctx::aio_write(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_write) {
+  NanScope();
 
   if (args.Length() < 5 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[4]->IsFunction()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -673,12 +674,11 @@ Handle<Value> Ioctx::aio_write(const Arguments& args) {
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
   uint64_t offset = args[3]->IsNumber() ? args[3]->IntegerValue() : 0;
-  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[4]));
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
 
-  asyncdata->callback = cb_complete;
+  asyncdata->callback.SetFunction(args[4].As<Function>());
   asyncdata->buffer = buffer;
   asyncdata->cb_buffer = false;
   asyncdata->size = size;
@@ -701,30 +701,29 @@ Handle<Value> Ioctx::aio_write(const Arguments& args) {
     (uv_after_work_cb)callback_complete
   );
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
-Handle<Value> Ioctx::aio_append(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_append) {
+  NanScope();
 
   if (args.Length() < 4 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
-  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
 
-  asyncdata->callback = cb_complete;
+  asyncdata->callback.SetFunction(args[3].As<Function>());
   asyncdata->buffer = buffer;
   asyncdata->cb_buffer = false;
   asyncdata->size = size;
@@ -747,30 +746,29 @@ Handle<Value> Ioctx::aio_append(const Arguments& args) {
     (uv_after_work_cb)callback_complete
   );
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
 
-Handle<Value> Ioctx::aio_write_full(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_write_full) {
+  NanScope();
 
   if (args.Length() < 4 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
-  Persistent<Function> cb_complete = Persistent<Function>::New(Local<Function>::Cast(args[3]));
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
 
-  asyncdata->callback = cb_complete;
+  asyncdata->callback.SetFunction(args[3].As<Function>());
   asyncdata->buffer = buffer;
   asyncdata->cb_buffer = false;
   asyncdata->size = size;
@@ -793,35 +791,34 @@ Handle<Value> Ioctx::aio_write_full(const Arguments& args) {
     (uv_after_work_cb)callback_complete
   );
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }
 
-Handle<Value> Ioctx::aio_flush(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_flush) {
+  NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   
   int err = rados_aio_flush(obj->ioctx);
 
-  return scope.Close(Number::New(-err));
+  NanReturnValue(NanNew<Number>(-err));
 }
 
 
-Handle<Value> Ioctx::aio_flush_async(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Ioctx::aio_flush_async) {
+  NanScope();
 
   if (args.Length() < 1 ||
       !args[0]->IsFunction()) {
-    return ThrowException(Exception::Error(String::New("Bad argument.")));
+    NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
-  Persistent<Function> cb = Persistent<Function>::New(Local<Function>::Cast(args[0]));
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
 
-  asyncdata->callback = cb;
+  asyncdata->callback.SetFunction(args[0].As<Function>());
   asyncdata->cb_buffer = false;
   asyncdata->comp = comp;
   asyncdata->err = 0;
@@ -842,5 +839,5 @@ Handle<Value> Ioctx::aio_flush_async(const Arguments& args) {
     (uv_after_work_cb)callback_complete
   );
 
-  return scope.Close(Undefined());
+  NanReturnUndefined();
 }

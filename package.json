@@ -9,6 +9,7 @@
 		"url" : "git://github.com/ksperis/node-rados.git"
 	},
 	"dependencies" : {
+		"nan": "*",
 		"node-gyp": ">0.10.0"
 	},
 	"scripts": {

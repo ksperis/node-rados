@@ -5,6 +5,7 @@
 #include <node_buffer.h>
 #include </usr/include/rados/librados.h>
 
+#include <nan.h>
 
 const size_t DEFAULT_BUFFER_SIZE = 1024;
 
@@ -17,18 +18,19 @@ class Rados : public node::ObjectWrap {
   Rados();
   ~Rados();
 
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
-  static v8::Handle<v8::Value> connect(const v8::Arguments& args);
-  static v8::Handle<v8::Value> shutdown(const v8::Arguments& args);
-  static v8::Handle<v8::Value> get_fsid(const v8::Arguments& args);
-  static v8::Handle<v8::Value> pool_list(const v8::Arguments& args);
-  static v8::Persistent<v8::Function> constructor;
+  static NAN_METHOD(New);
+  static NAN_METHOD(connect);
+  static NAN_METHOD(shutdown);
+  static NAN_METHOD(get_fsid);
+  static NAN_METHOD(pool_list);
+
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 };
 
 class Ioctx : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
+  static NAN_METHOD(New);
   rados_ioctx_t ioctx;
 
  private:
@@ -36,7 +38,7 @@ class Ioctx : public node::ObjectWrap {
   ~Ioctx();
   
   typedef struct AsyncData {
-    v8::Persistent<v8::Function> callback;
+    NanCallback callback;
     char* buffer;
     int cb_buffer;
     size_t size;
@@ -48,29 +50,29 @@ class Ioctx : public node::ObjectWrap {
   static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);
 
-  static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
-  static v8::Handle<v8::Value> snap_create(const v8::Arguments& args);
-  static v8::Handle<v8::Value> snap_remove(const v8::Arguments& args);
-  static v8::Handle<v8::Value> snap_rollback(const v8::Arguments& args);
-  static v8::Handle<v8::Value> read(const v8::Arguments& args);
-  static v8::Handle<v8::Value> write(const v8::Arguments& args);
-  static v8::Handle<v8::Value> write_full(const v8::Arguments& args);
-  static v8::Handle<v8::Value> clone_range(const v8::Arguments& args);
-  static v8::Handle<v8::Value> append(const v8::Arguments& args);
-  static v8::Handle<v8::Value> remove(const v8::Arguments& args);
-  static v8::Handle<v8::Value> trunc(const v8::Arguments& args);
-  static v8::Handle<v8::Value> stat(const v8::Arguments& args);
-  static v8::Handle<v8::Value> getxattr(const v8::Arguments& args);
-  static v8::Handle<v8::Value> setxattr(const v8::Arguments& args);
-  static v8::Handle<v8::Value> rmxattr(const v8::Arguments& args);
-  static v8::Handle<v8::Value> getxattrs(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_read(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_write(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_append(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_write_full(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_flush(const v8::Arguments& args);
-  static v8::Handle<v8::Value> aio_flush_async(const v8::Arguments& args);
-  static v8::Persistent<v8::Function> constructor;
+  static NAN_METHOD(destroy);
+  static NAN_METHOD(snap_create);
+  static NAN_METHOD(snap_remove);
+  static NAN_METHOD(snap_rollback);
+  static NAN_METHOD(read);
+  static NAN_METHOD(write);
+  static NAN_METHOD(write_full);
+  static NAN_METHOD(clone_range);
+  static NAN_METHOD(append);
+  static NAN_METHOD(remove);
+  static NAN_METHOD(trunc);
+  static NAN_METHOD(stat);
+  static NAN_METHOD(getxattr);
+  static NAN_METHOD(setxattr);
+  static NAN_METHOD(rmxattr);
+  static NAN_METHOD(getxattrs);
+  static NAN_METHOD(aio_read);
+  static NAN_METHOD(aio_write);
+  static NAN_METHOD(aio_append);
+  static NAN_METHOD(aio_write_full);
+  static NAN_METHOD(aio_flush);
+  static NAN_METHOD(aio_flush_async);
+  static v8::Persistent<v8::FunctionTemplate> constructor;
 };
 
 
