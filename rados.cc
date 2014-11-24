@@ -193,7 +193,7 @@ NAN_METHOD(Rados::pool_list) {
   const char *b = buffer;
   uint32_t array_id = 0;
   while (1) {
-      if (b[array_id] == '\0') {
+      if (*b == '\0') {
           break;
       }
       pools->Set(array_id, NanNew<String>(b));

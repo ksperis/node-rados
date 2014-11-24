@@ -19,6 +19,7 @@ From source:
 sudo apt-get install nodejs node-gyp librados-dev
 git clone https://github.com/ksperis/node-rados
 cd node-rados
+npm install nan
 node-gyp rebuild
 ```
 
