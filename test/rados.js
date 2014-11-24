@@ -142,6 +142,35 @@ module.exports = {
     });
   },
 
+/* snapshot tests needs to use pool with no rbd snap
+  'snap_create': function(test) {
+    var ioctx = this.ioctx;
+    test.equal(ioctx.write_full("testfile", new Buffer("version1")), 0);
+    test.equal(ioctx.snap_create("snaptest1"), 0);
+    test.equal(ioctx.write_full("testfile", new Buffer("version2")), 0);
+    test.equal(ioctx.snap_create("snaptest2"), 0);
+    test.equal(ioctx.write_full("testfile", new Buffer("version3")), 0);
+    test.equal(ioctx.snap_create("snaptest3"), 0);
+    test.done();
+  },
+
+  'snap_rollback': function(test) {
+    var ioctx = this.ioctx;
+    test.equal(ioctx.snap_rollback("testfile", "snaptest2"), 0);
+    test.equal(ioctx.read('testfile').toString(), 'version2');
+    test.done();
+  },
+
+  'snap_remove': function(test) {
+    var ioctx = this.ioctx;
+    test.equal(ioctx.snap_remove("snaptest1"), 0);
+    test.equal(ioctx.snap_remove("snaptest2"), 0);
+    test.equal(ioctx.snap_remove("snaptest3"), 0);
+    test.equal(ioctx.snap_remove("snaptest3"), 2); // ENOENT
+    test.done();
+  },
+  */
+
   'remove': function(test) {
     test.equal(this.ioctx.remove('testfile'), 0);
     test.equal(this.ioctx.remove('testfile'), 2); // ENOENT
