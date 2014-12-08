@@ -1,6 +1,6 @@
 {
 	"name": "rados",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"description" : "Ceph rados client for node.js",
 	"author" : "Laurent Barbe <laurent@ksperis.com>",
 	"main": "./build/Release/rados",
@@ -16,7 +16,7 @@
 		"nodeunit": "*"
 	},
 	"scripts": {
-        "preinstall": "node-gyp rebuild",
+        "install": "node-gyp rebuild",
         "test": "node_modules/.bin/nodeunit test/*"
     }
 }
