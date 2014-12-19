@@ -569,9 +569,12 @@ void Ioctx::wait_complete(uv_work_t *req) {
   AsyncData* asyncdata = (AsyncData *)req->data;
 
   rados_aio_wait_for_complete(*asyncdata->comp);
-  int err = rados_aio_get_return_value(*asyncdata->comp);
-  if (err < 0) {
-    asyncdata->err = -err;
+  int ret = rados_aio_get_return_value(*asyncdata->comp);
+  if (ret < 0) {
+    asyncdata->err = -ret;
+    asyncdata->size = 0;
+  } else {
+    asyncdata->size = ret;
   }
 
   rados_aio_release(*asyncdata->comp);
