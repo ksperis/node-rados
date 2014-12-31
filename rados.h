@@ -14,9 +14,13 @@ class Rados : public node::ObjectWrap {
   static void Init(v8::Handle<v8::Object> target);
   rados_t cluster;
 
+  bool verify_ioctx_required();
+
  private:
   Rados();
   ~Rados();
+
+  uint state;    // 0:nonexistent, 1:created, 2:configured, 3:connected, 4:destroyed
 
   static NAN_METHOD(New);
   static NAN_METHOD(connect);
@@ -46,6 +50,10 @@ class Ioctx : public node::ObjectWrap {
     int err;
     rados_completion_t* comp;
   } AsyncData;
+ 
+  Rados* rados;
+  uint state;  // 0:nonexistent, 1:connected, 2:destroyed
+  bool verify_required();
 
   static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);

@@ -90,6 +90,28 @@ void Ioctx::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(constructor)->GetFunction());
 }
 
+bool Rados::verify_ioctx_required() {
+  if ( this->state == 3 ) {
+    return true;
+  } else {
+    NanThrowError("Cluster not connected");
+    return false;
+  }
+}
+
+bool Ioctx::verify_required() {
+  if ( this->rados->verify_ioctx_required() ) {
+    if ( this->state == 1 ) {
+      return true;
+    } else {
+      NanThrowError("Ioctx not initialized");
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
 
 NAN_METHOD(Rados::New) {
   NanScope();
@@ -110,9 +132,11 @@ NAN_METHOD(Rados::New) {
   if ( rados_create2(&obj->cluster, *cluster_name, *user_name, flags) != 0 ) {
     NanThrowError("create rados cluster failed");
   }
+  obj->state = 1;
   if ( rados_conf_read_file(obj->cluster, *conffile) != 0 ) {
     NanThrowError("read conffile failed");
   }
+  obj->state = 2;
 
   obj->Wrap(args.This());
   NanReturnValue(args.This());
@@ -129,10 +153,15 @@ NAN_METHOD(Ioctx::New) {
 
   Ioctx* obj = new Ioctx();
   Rados* cluster = ObjectWrap::Unwrap<Rados>(args[0]->ToObject());
+  if ( !cluster->verify_ioctx_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value pool(args[1]);
   if ( rados_ioctx_create(cluster->cluster, *pool, &obj->ioctx) != 0 ) {
     NanThrowError("create Ioctx failed");
   }
+  obj->rados = cluster;
+  obj->state = 1;
 
   obj->Wrap(args.This());
   NanReturnThis();
@@ -144,7 +173,16 @@ NAN_METHOD(Rados::connect) {
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
+  if ( obj->state != 2 ) {
+    NanThrowError("Cluster should be in configured state.");
+    NanReturnNull();
+  }
+
   int err = rados_connect(obj->cluster);
+
+  if (err == 0) {
+    obj->state = 3;
+  }
 
   NanReturnValue(NanNew<Number>(-err));
 }
@@ -209,8 +247,12 @@ NAN_METHOD(Ioctx::destroy) {
   NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
 
   rados_ioctx_destroy(obj->ioctx);
+  obj->state = 0;
 
   NanReturnNull();
 }
@@ -225,6 +267,9 @@ NAN_METHOD(Ioctx::snap_create) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value snapname(args[0]);
 
   int err = rados_ioctx_snap_create(obj->ioctx, *snapname);
@@ -242,6 +287,9 @@ NAN_METHOD(Ioctx::snap_remove) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value snapname(args[0]);
 
   int err = rados_ioctx_snap_remove(obj->ioctx, *snapname);
@@ -260,6 +308,9 @@ NAN_METHOD(Ioctx::snap_rollback) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   String::Utf8Value snapname(args[1]);
 
@@ -278,6 +329,9 @@ NAN_METHOD(Ioctx::read) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   size_t size;
   if (args[1]->IsNumber()) {
@@ -312,6 +366,9 @@ NAN_METHOD(Ioctx::write) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -333,6 +390,9 @@ NAN_METHOD(Ioctx::write_full) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -356,6 +416,9 @@ NAN_METHOD(Ioctx::clone_range) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value dst(args[0]);
   uint64_t dst_off = args[1]->Uint32Value();
   String::Utf8Value src(args[2]);
@@ -378,6 +441,9 @@ NAN_METHOD(Ioctx::append) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -397,6 +463,9 @@ NAN_METHOD(Ioctx::remove) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
 
   int err = rados_remove(obj->ioctx, *oid);
@@ -415,6 +484,9 @@ NAN_METHOD(Ioctx::trunc) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   size_t size = args[1]->Uint32Value();
 
@@ -434,6 +506,9 @@ NAN_METHOD(Ioctx::getxattr) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
   size_t size;
@@ -471,6 +546,9 @@ NAN_METHOD(Ioctx::setxattr) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
   String::Utf8Value buffer(args[2]);
@@ -492,6 +570,9 @@ NAN_METHOD(Ioctx::rmxattr) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
 
@@ -510,6 +591,9 @@ NAN_METHOD(Ioctx::getxattrs) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   rados_xattrs_iter_t iter;
 
@@ -548,6 +632,9 @@ NAN_METHOD(Ioctx::stat) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   uint64_t psize;
   time_t pmtime;
@@ -618,6 +705,9 @@ NAN_METHOD(Ioctx::aio_read) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   size_t size;
   if (args[1]->IsNumber()) {
@@ -676,6 +766,9 @@ NAN_METHOD(Ioctx::aio_write) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -722,6 +815,9 @@ NAN_METHOD(Ioctx::aio_append) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -767,6 +863,9 @@ NAN_METHOD(Ioctx::aio_write_full) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -804,6 +903,9 @@ NAN_METHOD(Ioctx::aio_flush) {
   NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
   
   int err = rados_aio_flush(obj->ioctx);
 
@@ -820,6 +922,9 @@ NAN_METHOD(Ioctx::aio_flush_async) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->verify_required() ) {
+    NanReturnNull();
+  }
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
