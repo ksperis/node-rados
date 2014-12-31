@@ -295,9 +295,10 @@ NAN_METHOD(Ioctx::read) {
 
   if (err < 0) {
     NanReturnNull();
+  } else {
+    NanReturnValue(NanNewBufferHandle(buffer, err));
   }
 
-  NanReturnValue(NanNewBufferHandle(buffer, size));
 }
 
 
