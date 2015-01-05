@@ -91,7 +91,7 @@ void Ioctx::Init(Handle<Object> target) {
 }
 
 bool Rados::verify_ioctx_required() {
-  if ( this->state == 3 ) {
+  if ( this->state == STATE_CONNECTED ) {
     return true;
   } else {
     NanThrowError("Cluster not connected");
@@ -101,7 +101,7 @@ bool Rados::verify_ioctx_required() {
 
 bool Ioctx::verify_required() {
   if ( this->rados->verify_ioctx_required() ) {
-    if ( this->state == 1 ) {
+    if ( this->state == STATE_CREATED ) {
       return true;
     } else {
       NanThrowError("Ioctx not initialized");
@@ -120,7 +120,7 @@ NAN_METHOD(Rados::New) {
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Rados* obj = new Rados();
@@ -130,13 +130,13 @@ NAN_METHOD(Rados::New) {
   uint64_t flags = 0;
 
   if ( rados_create2(&obj->cluster, *cluster_name, *user_name, flags) != 0 ) {
-    NanThrowError("create rados cluster failed");
+    return NanThrowError("create rados cluster failed");
   }
-  obj->state = 1;
+  obj->state = STATE_CREATED;
   if ( rados_conf_read_file(obj->cluster, *conffile) != 0 ) {
-    NanThrowError("read conffile failed");
+    return NanThrowError("read conffile failed");
   }
-  obj->state = 2;
+  obj->state = STATE_CONFIGURED;
 
   obj->Wrap(args.This());
   NanReturnValue(args.This());
@@ -148,7 +148,7 @@ NAN_METHOD(Ioctx::New) {
 
   if (args.Length() < 2 ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = new Ioctx();
@@ -158,10 +158,10 @@ NAN_METHOD(Ioctx::New) {
   }
   String::Utf8Value pool(args[1]);
   if ( rados_ioctx_create(cluster->cluster, *pool, &obj->ioctx) != 0 ) {
-    NanThrowError("create Ioctx failed");
+    return NanThrowError("create Ioctx failed");
   }
   obj->rados = cluster;
-  obj->state = 1;
+  obj->state = STATE_CREATED;
 
   obj->Wrap(args.This());
   NanReturnThis();
@@ -173,15 +173,14 @@ NAN_METHOD(Rados::connect) {
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
-  if ( obj->state != 2 ) {
-    NanThrowError("Cluster should be in configured state.");
-    NanReturnNull();
+  if ( obj->state != STATE_CONFIGURED ) {
+    return ThrowException(Exception::Error(String::New("Cluster should be in configured state.")));
   }
 
   int err = rados_connect(obj->cluster);
 
   if (err == 0) {
-    obj->state = 3;
+    obj->state = STATE_CONNECTED;
   }
 
   NanReturnValue(NanNew<Number>(-err));
@@ -194,6 +193,7 @@ NAN_METHOD(Rados::shutdown) {
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
   rados_shutdown(obj->cluster);
+  obj->state = STATE_DESTROYED;
 
   NanReturnNull();
 }
@@ -252,7 +252,7 @@ NAN_METHOD(Ioctx::destroy) {
   }
 
   rados_ioctx_destroy(obj->ioctx);
-  obj->state = 0;
+  obj->state = STATE_DESTROYED;
 
   NanReturnNull();
 }
@@ -263,7 +263,7 @@ NAN_METHOD(Ioctx::snap_create) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -283,7 +283,7 @@ NAN_METHOD(Ioctx::snap_remove) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -304,7 +304,7 @@ NAN_METHOD(Ioctx::snap_rollback) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -325,7 +325,7 @@ NAN_METHOD(Ioctx::read) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -362,7 +362,7 @@ NAN_METHOD(Ioctx::write) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -386,7 +386,7 @@ NAN_METHOD(Ioctx::write_full) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -412,7 +412,7 @@ NAN_METHOD(Ioctx::clone_range) {
       !args[2]->IsString() ||
       !args[3]->IsNumber() ||
       !args[4]->IsNumber()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -437,7 +437,7 @@ NAN_METHOD(Ioctx::append) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -480,7 +480,7 @@ NAN_METHOD(Ioctx::trunc) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsNumber()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -502,7 +502,7 @@ NAN_METHOD(Ioctx::getxattr) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -542,7 +542,7 @@ NAN_METHOD(Ioctx::setxattr) {
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -566,7 +566,7 @@ NAN_METHOD(Ioctx::rmxattr) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -587,7 +587,7 @@ NAN_METHOD(Ioctx::getxattrs) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -701,7 +701,7 @@ NAN_METHOD(Ioctx::aio_read) {
   if (args.Length() < 4 ||
       !args[0]->IsString() ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -762,7 +762,7 @@ NAN_METHOD(Ioctx::aio_write) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[4]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -811,7 +811,7 @@ NAN_METHOD(Ioctx::aio_append) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -859,7 +859,7 @@ NAN_METHOD(Ioctx::aio_write_full) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
@@ -918,7 +918,7 @@ NAN_METHOD(Ioctx::aio_flush_async) {
 
   if (args.Length() < 1 ||
       !args[0]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
