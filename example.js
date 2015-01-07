@@ -1,6 +1,6 @@
 var rados = require('./build/Release/rados');
 
-// EXEMPLE FILE
+// EXAMPLE FILE
 
 //==================================
 //     Connect to cluster
@@ -79,7 +79,7 @@ ioctx.aio_flush_async(function (err) {
 
 process.exit(code=0)
 
-// OTHER EXEMPLES
+// OTHER EXAMPLES
 
 //   Read Sync file in chunks
 var file = "testfile";

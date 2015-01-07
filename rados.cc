@@ -90,6 +90,28 @@ void Ioctx::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(constructor)->GetFunction());
 }
 
+bool Rados::require_connected() {
+  if ( this->state == STATE_CONNECTED ) {
+    return true;
+  } else {
+    NanThrowError("Cluster is not in connected state");
+    return false;
+  }
+}
+
+bool Ioctx::require_created() {
+  if ( this->rados->require_connected() ) {
+    if ( this->state == STATE_CREATED ) {
+      return true;
+    } else {
+      NanThrowError("Ioctx not in created state");
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
 
 NAN_METHOD(Rados::New) {
   NanScope();
@@ -98,7 +120,7 @@ NAN_METHOD(Rados::New) {
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Rados* obj = new Rados();
@@ -108,11 +130,13 @@ NAN_METHOD(Rados::New) {
   uint64_t flags = 0;
 
   if ( rados_create2(&obj->cluster, *cluster_name, *user_name, flags) != 0 ) {
-    NanThrowError("create rados cluster failed");
+    return NanThrowError("create rados cluster failed");
   }
+  obj->state = STATE_CREATED;
   if ( rados_conf_read_file(obj->cluster, *conffile) != 0 ) {
-    NanThrowError("read conffile failed");
+    return NanThrowError("read conffile failed");
   }
+  obj->state = STATE_CONFIGURED;
 
   obj->Wrap(args.This());
   NanReturnValue(args.This());
@@ -124,15 +148,18 @@ NAN_METHOD(Ioctx::New) {
 
   if (args.Length() < 2 ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = new Ioctx();
   Rados* cluster = ObjectWrap::Unwrap<Rados>(args[0]->ToObject());
+  if ( !cluster->require_connected() ) NanReturnNull();
   String::Utf8Value pool(args[1]);
   if ( rados_ioctx_create(cluster->cluster, *pool, &obj->ioctx) != 0 ) {
-    NanThrowError("create Ioctx failed");
+    return NanThrowError("create Ioctx failed");
   }
+  obj->rados = cluster;
+  obj->state = STATE_CREATED;
 
   obj->Wrap(args.This());
   NanReturnThis();
@@ -144,7 +171,14 @@ NAN_METHOD(Rados::connect) {
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
+  if ( obj->state != STATE_CONFIGURED )
+    return ThrowException(Exception::Error(String::New("Cluster should be in configured state.")));
+
   int err = rados_connect(obj->cluster);
+
+  if (err == 0) {
+    obj->state = STATE_CONNECTED;
+  }
 
   NanReturnValue(NanNew<Number>(-err));
 }
@@ -154,8 +188,10 @@ NAN_METHOD(Rados::shutdown) {
   NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  if ( !obj->require_connected() ) NanReturnNull();
 
   rados_shutdown(obj->cluster);
+  obj->state = STATE_DESTROYED;
 
   NanReturnNull();
 }
@@ -165,6 +201,7 @@ NAN_METHOD(Rados::get_fsid) {
   NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  if ( !obj->require_connected() ) NanReturnNull();
   
   char fsid[37];
   if ( rados_cluster_fsid(obj->cluster, fsid, sizeof(fsid)) < 0) {
@@ -179,6 +216,7 @@ NAN_METHOD(Rados::pool_list) {
   NanScope();
 
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  if ( !obj->require_connected() ) NanReturnNull();
   
   char temp_buffer[256];
   int buff_size = rados_pool_list(obj->cluster, temp_buffer, 0);
@@ -209,8 +247,10 @@ NAN_METHOD(Ioctx::destroy) {
   NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
 
   rados_ioctx_destroy(obj->ioctx);
+  obj->state = STATE_DESTROYED;
 
   NanReturnNull();
 }
@@ -221,10 +261,11 @@ NAN_METHOD(Ioctx::snap_create) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value snapname(args[0]);
 
   int err = rados_ioctx_snap_create(obj->ioctx, *snapname);
@@ -238,10 +279,11 @@ NAN_METHOD(Ioctx::snap_remove) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value snapname(args[0]);
 
   int err = rados_ioctx_snap_remove(obj->ioctx, *snapname);
@@ -256,10 +298,11 @@ NAN_METHOD(Ioctx::snap_rollback) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   String::Utf8Value snapname(args[1]);
 
@@ -274,10 +317,11 @@ NAN_METHOD(Ioctx::read) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   size_t size;
   if (args[1]->IsNumber()) {
@@ -295,9 +339,10 @@ NAN_METHOD(Ioctx::read) {
 
   if (err < 0) {
     NanReturnNull();
+  } else {
+    NanReturnValue(NanNewBufferHandle(buffer, err));
   }
 
-  NanReturnValue(NanNewBufferHandle(buffer, size));
 }
 
 
@@ -307,10 +352,11 @@ NAN_METHOD(Ioctx::write) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -328,10 +374,11 @@ NAN_METHOD(Ioctx::write_full) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -351,10 +398,11 @@ NAN_METHOD(Ioctx::clone_range) {
       !args[2]->IsString() ||
       !args[3]->IsNumber() ||
       !args[4]->IsNumber()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value dst(args[0]);
   uint64_t dst_off = args[1]->Uint32Value();
   String::Utf8Value src(args[2]);
@@ -373,10 +421,11 @@ NAN_METHOD(Ioctx::append) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1])) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -396,6 +445,7 @@ NAN_METHOD(Ioctx::remove) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
 
   int err = rados_remove(obj->ioctx, *oid);
@@ -410,10 +460,11 @@ NAN_METHOD(Ioctx::trunc) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsNumber()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   size_t size = args[1]->Uint32Value();
 
@@ -429,10 +480,11 @@ NAN_METHOD(Ioctx::getxattr) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
   size_t size;
@@ -466,10 +518,11 @@ NAN_METHOD(Ioctx::setxattr) {
       !args[0]->IsString() ||
       !args[1]->IsString() ||
       !args[2]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
   String::Utf8Value buffer(args[2]);
@@ -487,10 +540,11 @@ NAN_METHOD(Ioctx::rmxattr) {
   if (args.Length() < 2 ||
       !args[0]->IsString() ||
       !args[1]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   String::Utf8Value name(args[1]);
 
@@ -505,10 +559,11 @@ NAN_METHOD(Ioctx::getxattrs) {
 
   if (args.Length() < 1 ||
       !args[0]->IsString()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   rados_xattrs_iter_t iter;
 
@@ -547,6 +602,7 @@ NAN_METHOD(Ioctx::stat) {
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   uint64_t psize;
   time_t pmtime;
@@ -569,9 +625,12 @@ void Ioctx::wait_complete(uv_work_t *req) {
   AsyncData* asyncdata = (AsyncData *)req->data;
 
   rados_aio_wait_for_complete(*asyncdata->comp);
-  int err = rados_aio_get_return_value(*asyncdata->comp);
-  if (err < 0) {
-    asyncdata->err = -err;
+  int ret = rados_aio_get_return_value(*asyncdata->comp);
+  if (ret < 0) {
+    asyncdata->err = -ret;
+    asyncdata->size = 0;
+  } else {
+    asyncdata->size = ret;
   }
 
   rados_aio_release(*asyncdata->comp);
@@ -610,10 +669,11 @@ NAN_METHOD(Ioctx::aio_read) {
   if (args.Length() < 4 ||
       !args[0]->IsString() ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   size_t size;
   if (args[1]->IsNumber()) {
@@ -668,10 +728,11 @@ NAN_METHOD(Ioctx::aio_write) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[4]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -714,10 +775,11 @@ NAN_METHOD(Ioctx::aio_append) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -759,10 +821,11 @@ NAN_METHOD(Ioctx::aio_write_full) {
       !args[0]->IsString() ||
       !Buffer::HasInstance(args[1]) ||
       !args[3]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
   char* buffer = Buffer::Data(args[1]);
   size_t size = args[2]->IsNumber() ? args[2]->Uint32Value() : Buffer::Length(args[1]);
@@ -800,6 +863,7 @@ NAN_METHOD(Ioctx::aio_flush) {
   NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
   
   int err = rados_aio_flush(obj->ioctx);
 
@@ -812,10 +876,11 @@ NAN_METHOD(Ioctx::aio_flush_async) {
 
   if (args.Length() < 1 ||
       !args[0]->IsFunction()) {
-    NanThrowError("Bad argument.");
+    return NanThrowError("Bad argument.");
   }
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;

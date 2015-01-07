@@ -8,15 +8,23 @@
 #include <nan.h>
 
 const size_t DEFAULT_BUFFER_SIZE = 1024;
+const uint STATE_CREATED     = 1;
+const uint STATE_CONFIGURED  = 2;
+const uint STATE_CONNECTED   = 3;
+const uint STATE_DESTROYED   = 4;
 
 class Rados : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
   rados_t cluster;
 
+  bool require_connected();
+
  private:
   Rados();
-  ~Rados();
+  ~Rados(); 
+
+  uint state;
 
   static NAN_METHOD(New);
   static NAN_METHOD(connect);
@@ -33,6 +41,8 @@ class Ioctx : public node::ObjectWrap {
   static NAN_METHOD(New);
   rados_ioctx_t ioctx;
 
+  bool require_created();
+
  private:
   Ioctx();
   ~Ioctx();
@@ -46,7 +56,10 @@ class Ioctx : public node::ObjectWrap {
     int err;
     rados_completion_t* comp;
   } AsyncData;
-
+ 
+  Rados* rados;
+  uint state;
+  
   static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);
 
