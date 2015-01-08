@@ -116,6 +116,9 @@ bool Ioctx::require_created() {
 NAN_METHOD(Rados::New) {
   NanScope();
 
+  if (!args.IsConstructCall()) {
+    return NanThrowError("Rados object must be instantiated with 'new' statement");
+  }
   if (args.Length() < 3 ||
       !args[0]->IsString() ||
       !args[1]->IsString() ||
@@ -146,6 +149,9 @@ NAN_METHOD(Rados::New) {
 NAN_METHOD(Ioctx::New) {
   NanScope();
 
+  if (!args.IsConstructCall()) {
+    return NanThrowError("Ioctx object must be instantiated with 'new' statement");
+  }
   if (args.Length() < 2 ||
       !args[1]->IsString()) {
     return NanThrowError("Bad argument.");
