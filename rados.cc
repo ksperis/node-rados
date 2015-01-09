@@ -243,6 +243,7 @@ NAN_METHOD(Rados::pool_create) {
   switch (args.Length()) {
     case 1: {
       err = rados_pool_create(obj->cluster, *pool_name);
+      break;
     }
     case 2: {
       if (args[1]->IsNumber()) {
@@ -251,6 +252,7 @@ NAN_METHOD(Rados::pool_create) {
       } else {
         return NanThrowError("Bad argument.");
       }
+      break;
     }
     case 3: {
       if (args[1]->IsNumber() && args[2]->IsNumber()) {
@@ -263,7 +265,7 @@ NAN_METHOD(Rados::pool_create) {
       } else {
         return NanThrowError("Bad argument.");
       }
-
+      break;
     }
   }
 
@@ -348,7 +350,7 @@ NAN_METHOD(Ioctx::pool_get_auid) {
   int err = rados_ioctx_pool_get_auid(obj->ioctx, &auid);
 
   if (err < 0) {
-    return NanThrowError("pool_get_auid error " -err);
+    NanReturnValue(NanNew<Number>(err));
   }
 
   NanReturnValue(NanNew<Number>(auid));

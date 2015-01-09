@@ -53,7 +53,7 @@ Create / Delete Ioctx :
 ioctx = new rados.Ioctx(cluster, poolname)			// on error, throw error
 ioctx.delete()
 ioctx.pool_set_auid(auid)							// on error, return error
-ioctx.pool_get_auid(auid)							// on error, throw error
+ioctx.pool_get_auid(auid)							// on error, return auid (negative value on error)
 ```
 
 Manage snapshots :
