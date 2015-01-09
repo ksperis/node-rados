@@ -42,6 +42,8 @@ cluster.connect()									// on err, return err code
 cluster.shutdown()									// on err, return err code
 
 cluster.get_fsid()									// return String (null on error)
+cluster.create_pool(pool_name, [auid], [crush_rule])// on err, return err code
+cluster.delete_pool(pool_name)						// on err, return err code
 cluster.pool_list()									// return Array (null on error)
 ```
 
@@ -50,6 +52,8 @@ Create / Delete Ioctx :
 ```js
 ioctx = new rados.Ioctx(cluster, poolname)			// on error, throw error
 ioctx.delete()
+ioctx.pool_set_auid(auid)							// on error, return error
+ioctx.pool_get_auid(auid)							// on error, throw error
 ```
 
 Manage snapshots :
