@@ -31,8 +31,6 @@ void Rados::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(pool_create)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("pool_delete"),
       NanNew<FunctionTemplate>(pool_delete)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_delete"),
-      NanNew<FunctionTemplate>(pool_delete)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("pool_list"),
       NanNew<FunctionTemplate>(pool_list)->GetFunction());
 
