@@ -80,10 +80,10 @@ ioctx.stat(oid)										// return Object with attr psize, pmtime
 AIO functions :
 
 ```js
-ioctx.aio_read(oid, size, offset, function (err, data) {})
-ioctx.aio_write(oid, buffer, size, offset, function (err) {})
-ioctx.aio_append(oid, buffer, size, function (err) {})
-ioctx.aio_write_full(oid, buffer, size, function (err) {})
+ioctx.aio_read(oid, [size], [offset], function (err, data) {})
+ioctx.aio_write(oid, buffer, [size], [offset], function (err) {})
+ioctx.aio_append(oid, buffer, [size], function (err) {})
+ioctx.aio_write_full(oid, buffer, [size], function (err) {})
 ioctx.aio_flush()
 ioctx.aio_flush_async(function (err) {})
 ```
