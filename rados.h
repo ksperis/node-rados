@@ -30,6 +30,8 @@ class Rados : public node::ObjectWrap {
   static NAN_METHOD(connect);
   static NAN_METHOD(shutdown);
   static NAN_METHOD(get_fsid);
+  static NAN_METHOD(pool_create);
+  static NAN_METHOD(pool_delete);
   static NAN_METHOD(pool_list);
 
   static v8::Persistent<v8::FunctionTemplate> constructor;
@@ -63,6 +65,8 @@ class Ioctx : public node::ObjectWrap {
   static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);
 
+  static NAN_METHOD(pool_set_auid);
+  static NAN_METHOD(pool_get_auid);
   static NAN_METHOD(destroy);
   static NAN_METHOD(snap_create);
   static NAN_METHOD(snap_remove);

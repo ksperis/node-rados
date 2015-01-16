@@ -27,6 +27,10 @@ void Rados::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(shutdown)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("get_fsid"),
       NanNew<FunctionTemplate>(get_fsid)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_create"),
+      NanNew<FunctionTemplate>(pool_create)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_delete"),
+      NanNew<FunctionTemplate>(pool_delete)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("pool_list"),
       NanNew<FunctionTemplate>(pool_list)->GetFunction());
 
@@ -40,6 +44,10 @@ void Ioctx::Init(Handle<Object> target) {
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
   tpl->SetClassName(NanNew<String>("Ioctx"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_set_auid"),
+      NanNew<FunctionTemplate>(pool_set_auid)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("pool_get_auid"),
+      NanNew<FunctionTemplate>(pool_get_auid)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("destroy"),
       NanNew<FunctionTemplate>(destroy)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("snap_create"),
@@ -116,6 +124,9 @@ bool Ioctx::require_created() {
 NAN_METHOD(Rados::New) {
   NanScope();
 
+  if (!args.IsConstructCall()) {
+    return NanThrowError("Rados object must be instantiated with 'new' statement");
+  }
   if (args.Length() < 3 ||
       !args[0]->IsString() ||
       !args[1]->IsString() ||
@@ -146,6 +157,9 @@ NAN_METHOD(Rados::New) {
 NAN_METHOD(Ioctx::New) {
   NanScope();
 
+  if (!args.IsConstructCall()) {
+    return NanThrowError("Ioctx object must be instantiated with 'new' statement");
+  }
   if (args.Length() < 2 ||
       !args[1]->IsString()) {
     return NanThrowError("Bad argument.");
@@ -172,7 +186,7 @@ NAN_METHOD(Rados::connect) {
   Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
 
   if ( obj->state != STATE_CONFIGURED )
-    return ThrowException(Exception::Error(String::New("Cluster should be in configured state.")));
+    return NanThrowError("Cluster should be in configured state.");
 
   int err = rados_connect(obj->cluster);
 
@@ -212,6 +226,71 @@ NAN_METHOD(Rados::get_fsid) {
 }
 
 
+NAN_METHOD(Rados::pool_create) {
+  NanScope();
+
+  if (args.Length() < 1 ||
+      !args[0]->IsString()) {
+    return NanThrowError("Bad argument.");
+  }
+
+  Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  if ( !obj->require_connected() ) NanReturnNull();
+  
+  String::Utf8Value pool_name(args[0]);
+
+  int err=0;
+  switch (args.Length()) {
+    case 1: {
+      err = rados_pool_create(obj->cluster, *pool_name);
+      break;
+    }
+    case 2: {
+      if (args[1]->IsNumber()) {
+        uint64_t auid = args[1]->IntegerValue();
+        err = rados_pool_create_with_auid(obj->cluster, *pool_name, auid);
+      } else {
+        return NanThrowError("Bad argument.");
+      }
+      break;
+    }
+    case 3: {
+      if (args[1]->IsNumber() && args[2]->IsNumber()) {
+        uint64_t auid = args[1]->IntegerValue();
+        uint8_t crush_rule = args[2]->Uint32Value();
+        err = rados_pool_create_with_all(obj->cluster, *pool_name, auid, crush_rule);
+      } else if (args[2]->IsNumber()) {
+        uint8_t crush_rule = args[2]->Uint32Value();
+        err = rados_pool_create_with_crush_rule(obj->cluster, *pool_name, crush_rule);
+      } else {
+        return NanThrowError("Bad argument.");
+      }
+      break;
+    }
+  }
+
+  NanReturnValue(NanNew<Number>(-err));
+}
+
+
+NAN_METHOD(Rados::pool_delete) {
+  NanScope();
+
+  if (args.Length() < 1 ||
+      !args[0]->IsString()) {
+    return NanThrowError("Bad argument.");
+  }
+
+  Rados* obj = ObjectWrap::Unwrap<Rados>(args.This());
+  if ( !obj->require_connected() ) NanReturnNull();
+  String::Utf8Value pool_name(args[0]);
+
+  int err = rados_pool_delete(obj->cluster, *pool_name);
+
+  NanReturnValue(NanNew<Number>(-err));
+}
+
+
 NAN_METHOD(Rados::pool_list) {
   NanScope();
 
@@ -240,6 +319,41 @@ NAN_METHOD(Rados::pool_list) {
   }
 
   NanReturnValue(pools);
+}
+
+
+NAN_METHOD(Ioctx::pool_set_auid) {
+  NanScope();
+
+  if (args.Length() < 1 ||
+      args[1]->IsNumber()) {
+    return NanThrowError("Bad argument.");
+  }
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
+  uint64_t auid = args[0]->IntegerValue();
+
+  int err = rados_ioctx_pool_set_auid(obj->ioctx, auid);
+
+  NanReturnValue(NanNew<Number>(-err));
+}
+
+
+NAN_METHOD(Ioctx::pool_get_auid) {
+  NanScope();
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
+
+  uint64_t auid;
+  int err = rados_ioctx_pool_get_auid(obj->ioctx, &auid);
+
+  if (err < 0) {
+    NanReturnValue(NanNew<Number>(err));
+  }
+
+  NanReturnValue(NanNew<Number>(auid));
 }
 
 
