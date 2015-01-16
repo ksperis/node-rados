@@ -437,14 +437,7 @@ NAN_METHOD(Ioctx::read) {
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
-  size_t size;
-  if (args[1]->IsNumber()) {
-    size = args[1]->Uint32Value();
-  } else {
-    if ( rados_stat(obj->ioctx, *oid, &size, NULL) < 0) {
-      NanReturnNull();
-    }
-  }
+  size_t size = args[1]->IsNumber() ? args[1]->IntegerValue() : 8192;
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
   char buffer[size];
@@ -789,19 +782,7 @@ NAN_METHOD(Ioctx::aio_read) {
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
-  size_t size;
-  if (args[1]->IsNumber()) {
-    size = args[1]->Uint32Value();
-  } else {
-    int err = rados_stat(obj->ioctx, *oid, &size, NULL);
-    if (err < 0) {
-      const unsigned argc = 1;
-      Local<Value> argv[argc] = {
-        NanNew<Number>(-err) };
-      NanMakeCallback(NanGetCurrentContext()->Global(), args[3].As<Function>(), argc, argv);
-      NanReturnNull();
-    }
-  }
+  size_t size = args[1]->IsNumber() ? args[1]->IntegerValue() : 8192;
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
   AsyncData *asyncdata = new AsyncData;
