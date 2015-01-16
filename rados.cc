@@ -440,14 +440,14 @@ NAN_METHOD(Ioctx::read) {
   size_t size = args[1]->IsNumber() ? args[1]->IntegerValue() : 8192;
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
-  char buffer[size];
+  char *buffer = new char[size];
 
   int err = rados_read(obj->ioctx, *oid, buffer, size, offset);
 
   if (err < 0) {
     NanReturnNull();
   } else {
-    NanReturnValue(NanNewBufferHandle(buffer, err));
+    NanReturnValue(NanBufferUse(buffer, err));
   }
 
 }
