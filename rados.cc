@@ -445,6 +445,7 @@ NAN_METHOD(Ioctx::read) {
   int err = rados_read(obj->ioctx, *oid, buffer, size, offset);
 
   if (err < 0) {
+    delete buffer;
     NanReturnNull();
   } else {
     NanReturnValue(NanBufferUse(buffer, err));
