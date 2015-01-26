@@ -92,8 +92,8 @@ void Ioctx::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(aio_flush)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("aio_flush_async"),
       NanNew<FunctionTemplate>(aio_flush_async)->GetFunction());
-  tpl->PrototypeTemplate()->Set(NanNew<String>("aio_objects_list"),
-      NanNew<FunctionTemplate>(aio_objects_list)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("objects_list"),
+      NanNew<FunctionTemplate>(objects_list)->GetFunction());
 
   NanAssignPersistent(constructor, tpl);
   target->Set(NanNew<String>("Ioctx"),
@@ -1008,7 +1008,7 @@ NAN_METHOD(Ioctx::aio_flush_async) {
 }
 
 #define ENOENT 2
-NAN_METHOD(Ioctx::aio_objects_list) {
+NAN_METHOD(Ioctx::objects_list) {
   NanScope();
 
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
