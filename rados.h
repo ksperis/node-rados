@@ -89,6 +89,7 @@ class Ioctx : public node::ObjectWrap {
   static NAN_METHOD(aio_write_full);
   static NAN_METHOD(aio_flush);
   static NAN_METHOD(aio_flush_async);
+  static NAN_METHOD(aio_objects_list);
   static v8::Persistent<v8::FunctionTemplate> constructor;
 };
 
