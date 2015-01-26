@@ -1011,11 +1011,6 @@ NAN_METHOD(Ioctx::aio_flush_async) {
 NAN_METHOD(Ioctx::aio_objects_list) {
   NanScope();
 
-  if (args.Length() < 1 ||
-    !args[0]->IsString()) {
-    return NanThrowError("Bad argument.");
-  }
-
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   if ( !obj->require_created() ) NanReturnNull();
 
