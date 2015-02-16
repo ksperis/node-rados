@@ -1,6 +1,4 @@
-var rados = require('../build/Release/rados');
-
-var ReadableStream = require('stream').Readable;
+var rados = require('../');
 
 var CEPH_CLUSTER = 'ceph';
 var CEPH_ID = 'client.admin';
@@ -36,29 +34,7 @@ module.exports = {
     // Write buffer to testfile
     test.equal(this.ioctx.write_full('testfile', buffer), 0);
 
-    var stream = new ReadableStream({highWaterMark:1}); // 1 char at the time
-    stream._offset = 0;
-    stream._paused = true;
-
-    stream._read = function(size) {
-      var readMore = function() {
-        ioctx.aio_read('testfile', size, stream._offset, function(err, data) {
-          test.ifError(err);
-          stream._offset += data.length;
-          if (stream.push((data.length > 0) ? data : null)) {
-            // Continue reading
-            return readMore();
-          } else {
-            stream._paused = true;
-          }
-        });
-      };
-
-      if (stream._paused) {
-        stream._paused = false;
-        readMore();
-      }
-    };
+    var stream = ioctx.createReadStream('testfile', {highWaterMark:1}); // 1 char at the time
 
     stream.on('data', function(data) {
       if (stream._offset > 14) throw new Error('Expected no more than 14 characters');
