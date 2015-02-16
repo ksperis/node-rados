@@ -51,7 +51,7 @@ Create / Delete Ioctx :
 
 ```js
 ioctx = new rados.Ioctx(cluster, poolname)			// on error, throw error
-ioctx.delete()
+ioctx.destroy()
 ioctx.pool_set_auid(auid)							// on error, return error
 ioctx.pool_get_auid(auid)							// on error, return auid (negative value on error)
 ```
