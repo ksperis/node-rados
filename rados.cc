@@ -92,6 +92,8 @@ void Ioctx::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(aio_flush)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("aio_flush_async"),
       NanNew<FunctionTemplate>(aio_flush_async)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("objects_list"),
+      NanNew<FunctionTemplate>(objects_list)->GetFunction());
 
   NanAssignPersistent(constructor, tpl);
   target->Set(NanNew<String>("Ioctx"),
@@ -1003,4 +1005,39 @@ NAN_METHOD(Ioctx::aio_flush_async) {
   );
 
   NanReturnUndefined();
+}
+
+#define ENOENT 2
+NAN_METHOD(Ioctx::objects_list) {
+  NanScope();
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
+
+  rados_list_ctx_t h_ctx;
+  //Start listing objects in a pool.
+  int err = rados_objects_list_open(obj->ioctx, &h_ctx);
+  if (err < 0) {
+    return NanThrowError("open list failed.");
+  }
+
+  Local<Array> ret_list = NanNew<Array>();
+  uint32_t array_id = 0;
+  //Get the next object name and locator in the pool.
+
+  while(0 <= err) {
+    const char *obj_name;
+    err = rados_objects_list_next(h_ctx, &obj_name, NULL);
+    if (err == 0) {
+      ret_list->Set(array_id, NanNew(obj_name));
+      array_id++;
+    }
+  }
+  rados_objects_list_close(h_ctx);
+
+  if (err < 0 && err != -ENOENT) {
+    return NanThrowError("list_next failed.");
+  }
+
+  NanReturnValue(ret_list);
 }
