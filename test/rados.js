@@ -1,4 +1,4 @@
-var rados = require('../build/Release/rados');
+var rados = require('../');
 
 var CEPH_CLUSTER = 'ceph';
 var CEPH_ID = 'client.admin';
