@@ -8,8 +8,8 @@
 		"url" : "git://github.com/ksperis/node-rados.git"
 	},
 	"dependencies" : {
-		"bindings": "*",
-		"nan": "*",
+		"bindings": "^1.2.1",
+		"nan": "<2.0.0",
 		"node-gyp": ">0.10.0"
 	},
 	"devDependencies" : {
