@@ -92,6 +92,8 @@ void Ioctx::Init(Handle<Object> target) {
       NanNew<FunctionTemplate>(aio_flush)->GetFunction());
   tpl->PrototypeTemplate()->Set(NanNew<String>("aio_flush_async"),
       NanNew<FunctionTemplate>(aio_flush_async)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("objects_list"),
+      NanNew<FunctionTemplate>(objects_list)->GetFunction());
 
   NanAssignPersistent(constructor, tpl);
   target->Set(NanNew<String>("Ioctx"),
@@ -437,24 +439,18 @@ NAN_METHOD(Ioctx::read) {
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
-  size_t size;
-  if (args[1]->IsNumber()) {
-    size = args[1]->Uint32Value();
-  } else {
-    if ( rados_stat(obj->ioctx, *oid, &size, NULL) < 0) {
-      NanReturnNull();
-    }
-  }
+  size_t size = args[1]->IsNumber() ? args[1]->IntegerValue() : 8192;
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
-  char buffer[size];
+  char *buffer = new char[size];
 
   int err = rados_read(obj->ioctx, *oid, buffer, size, offset);
 
   if (err < 0) {
+    delete buffer;
     NanReturnNull();
   } else {
-    NanReturnValue(NanNewBufferHandle(buffer, err));
+    NanReturnValue(NanBufferUse(buffer, err));
   }
 
 }
@@ -789,19 +785,7 @@ NAN_METHOD(Ioctx::aio_read) {
   Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
   if ( !obj->require_created() ) NanReturnNull();
   String::Utf8Value oid(args[0]);
-  size_t size;
-  if (args[1]->IsNumber()) {
-    size = args[1]->Uint32Value();
-  } else {
-    int err = rados_stat(obj->ioctx, *oid, &size, NULL);
-    if (err < 0) {
-      const unsigned argc = 1;
-      Local<Value> argv[argc] = {
-        NanNew<Number>(-err) };
-      NanMakeCallback(NanGetCurrentContext()->Global(), args[3].As<Function>(), argc, argv);
-      NanReturnNull();
-    }
-  }
+  size_t size = args[1]->IsNumber() ? args[1]->IntegerValue() : 8192;
   uint64_t offset = args[2]->IsNumber() ? args[2]->IntegerValue() : 0;
 
   AsyncData *asyncdata = new AsyncData;
@@ -1021,4 +1005,39 @@ NAN_METHOD(Ioctx::aio_flush_async) {
   );
 
   NanReturnUndefined();
+}
+
+#define ENOENT 2
+NAN_METHOD(Ioctx::objects_list) {
+  NanScope();
+
+  Ioctx* obj = ObjectWrap::Unwrap<Ioctx>(args.This());
+  if ( !obj->require_created() ) NanReturnNull();
+
+  rados_list_ctx_t h_ctx;
+  //Start listing objects in a pool.
+  int err = rados_objects_list_open(obj->ioctx, &h_ctx);
+  if (err < 0) {
+    return NanThrowError("open list failed.");
+  }
+
+  Local<Array> ret_list = NanNew<Array>();
+  uint32_t array_id = 0;
+  //Get the next object name and locator in the pool.
+
+  while(0 <= err) {
+    const char *obj_name;
+    err = rados_objects_list_next(h_ctx, &obj_name, NULL);
+    if (err == 0) {
+      ret_list->Set(array_id, NanNew(obj_name));
+      array_id++;
+    }
+  }
+  rados_objects_list_close(h_ctx);
+
+  if (err < 0 && err != -ENOENT) {
+    return NanThrowError("list_next failed.");
+  }
+
+  NanReturnValue(ret_list);
 }
