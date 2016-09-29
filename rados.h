@@ -13,7 +13,7 @@ const uint STATE_CONFIGURED  = 2;
 const uint STATE_CONNECTED   = 3;
 const uint STATE_DESTROYED   = 4;
 
-class Rados : public node::ObjectWrap {
+class Rados : public Nan::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
   rados_t cluster;
@@ -22,7 +22,7 @@ class Rados : public node::ObjectWrap {
 
  private:
   Rados();
-  ~Rados(); 
+  ~Rados();
 
   uint state;
 
@@ -34,10 +34,10 @@ class Rados : public node::ObjectWrap {
   static NAN_METHOD(pool_delete);
   static NAN_METHOD(pool_list);
 
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static Nan::Persistent<v8::FunctionTemplate> constructor;
 };
 
-class Ioctx : public node::ObjectWrap {
+class Ioctx : public Nan::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> target);
   static NAN_METHOD(New);
@@ -48,9 +48,9 @@ class Ioctx : public node::ObjectWrap {
  private:
   Ioctx();
   ~Ioctx();
-  
+
   typedef struct AsyncData {
-    NanCallback callback;
+    Nan::Callback callback;
     char* buffer;
     int cb_buffer;
     size_t size;
@@ -58,10 +58,10 @@ class Ioctx : public node::ObjectWrap {
     int err;
     rados_completion_t* comp;
   } AsyncData;
- 
+
   Rados* rados;
   uint state;
-  
+
   static void callback_complete(uv_work_t *req);
   static void wait_complete(uv_work_t *req);
 
@@ -90,7 +90,7 @@ class Ioctx : public node::ObjectWrap {
   static NAN_METHOD(aio_flush);
   static NAN_METHOD(aio_flush_async);
   static NAN_METHOD(objects_list);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  static Nan::Persistent<v8::FunctionTemplate> constructor;
 };
 
 
