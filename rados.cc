@@ -649,6 +649,8 @@ NAN_METHOD(Ioctx::stat) {
 
 
 void Ioctx::wait_complete(uv_work_t *req) {
+  // no HandleScope as there's no NAN stuff in this function
+
   AsyncData* asyncdata = (AsyncData *)req->data;
 
   rados_aio_wait_for_complete(*asyncdata->comp);
@@ -666,6 +668,7 @@ void Ioctx::wait_complete(uv_work_t *req) {
 
 
 void Ioctx::callback_complete(uv_work_t *req) {
+  Nan::HandleScope scope;
   AsyncData *asyncdata = (AsyncData *)req->data;
 
   if (asyncdata->cb_buffer) {
