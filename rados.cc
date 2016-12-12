@@ -54,6 +54,7 @@ void Ioctx::Init(Local<Object> target) {
   Nan::SetPrototypeMethod(tpl, "trunc", trunc);
   Nan::SetPrototypeMethod(tpl, "stat", stat);
   Nan::SetPrototypeMethod(tpl, "getxattr", getxattr);
+  Nan::SetPrototypeMethod(tpl, "getxattrs", getxattrs);
   Nan::SetPrototypeMethod(tpl, "setxattr", setxattr);
   Nan::SetPrototypeMethod(tpl, "rmxattr", rmxattr);
   Nan::SetPrototypeMethod(tpl, "aio_read", aio_read);
@@ -134,7 +135,10 @@ NAN_METHOD(Ioctx::New) {
 
   Ioctx* obj = new Ioctx();
   Rados* cluster = Nan::ObjectWrap::Unwrap<Rados>(info[0]->ToObject());
-  if ( !cluster->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !cluster->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value pool(info[1]);
   if ( rados_ioctx_create(cluster->cluster, *pool, &obj->ioctx) != 0 ) {
     return Nan::ThrowError("create Ioctx failed");
@@ -165,7 +169,10 @@ NAN_METHOD(Rados::connect) {
 
 NAN_METHOD(Rados::shutdown) {
   Rados* obj = Nan::ObjectWrap::Unwrap<Rados>(info.This());
-  if ( !obj->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   rados_shutdown(obj->cluster);
   obj->state = STATE_DESTROYED;
@@ -176,7 +183,10 @@ NAN_METHOD(Rados::shutdown) {
 
 NAN_METHOD(Rados::get_fsid) {
   Rados* obj = Nan::ObjectWrap::Unwrap<Rados>(info.This());
-  if ( !obj->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   char fsid[37];
   if ( rados_cluster_fsid(obj->cluster, fsid, sizeof(fsid)) < 0) {
@@ -194,7 +204,10 @@ NAN_METHOD(Rados::pool_create) {
   }
 
   Rados* obj = Nan::ObjectWrap::Unwrap<Rados>(info.This());
-  if ( !obj->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   String::Utf8Value pool_name(info[0]);
 
@@ -239,7 +252,10 @@ NAN_METHOD(Rados::pool_delete) {
   }
 
   Rados* obj = Nan::ObjectWrap::Unwrap<Rados>(info.This());
-  if ( !obj->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value pool_name(info[0]);
 
   int err = rados_pool_delete(obj->cluster, *pool_name);
@@ -250,7 +266,10 @@ NAN_METHOD(Rados::pool_delete) {
 
 NAN_METHOD(Rados::pool_list) {
   Rados* obj = Nan::ObjectWrap::Unwrap<Rados>(info.This());
-  if ( !obj->require_connected() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_connected() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   char temp_buffer[256];
   int buff_size = rados_pool_list(obj->cluster, temp_buffer, 0);
@@ -259,6 +278,7 @@ NAN_METHOD(Rados::pool_list) {
   int r = rados_pool_list(obj->cluster, buffer, sizeof(buffer));
   if (r != buff_size) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
 
   Local<Array> pools = Nan::New<Array>();
@@ -284,7 +304,10 @@ NAN_METHOD(Ioctx::pool_set_auid) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   uint64_t auid = info[0]->IntegerValue();
 
   int err = rados_ioctx_pool_set_auid(obj->ioctx, auid);
@@ -295,7 +318,10 @@ NAN_METHOD(Ioctx::pool_set_auid) {
 
 NAN_METHOD(Ioctx::pool_get_auid) {
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   uint64_t auid;
   int err = rados_ioctx_pool_get_auid(obj->ioctx, &auid);
@@ -310,12 +336,15 @@ NAN_METHOD(Ioctx::pool_get_auid) {
 
 NAN_METHOD(Ioctx::destroy) {
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+  else {
+    rados_ioctx_destroy(obj->ioctx);
+    obj->state = STATE_DESTROYED;
 
-  rados_ioctx_destroy(obj->ioctx);
-  obj->state = STATE_DESTROYED;
-
-  info.GetReturnValue().Set(Nan::Null());
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 
@@ -342,7 +371,10 @@ NAN_METHOD(Ioctx::snap_remove) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value snapname(info[0]);
 
   int err = rados_ioctx_snap_remove(obj->ioctx, *snapname);
@@ -359,7 +391,10 @@ NAN_METHOD(Ioctx::snap_rollback) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   String::Utf8Value snapname(info[1]);
 
@@ -376,7 +411,10 @@ NAN_METHOD(Ioctx::read) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   size_t size = info[1]->IsNumber() ? info[1]->IntegerValue() : 8192;
   uint64_t offset = info[2]->IsNumber() ? info[2]->IntegerValue() : 0;
@@ -403,7 +441,10 @@ NAN_METHOD(Ioctx::write) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -423,7 +464,10 @@ NAN_METHOD(Ioctx::write_full) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -445,7 +489,10 @@ NAN_METHOD(Ioctx::clone_range) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value dst(info[0]);
   uint64_t dst_off = info[1]->Uint32Value();
   String::Utf8Value src(info[2]);
@@ -466,7 +513,10 @@ NAN_METHOD(Ioctx::append) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -481,10 +531,14 @@ NAN_METHOD(Ioctx::remove) {
   if (info.Length() != 1 ||
       !info[0]->IsString()) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
 
   int err = rados_remove(obj->ioctx, *oid);
@@ -501,7 +555,10 @@ NAN_METHOD(Ioctx::trunc) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   size_t size = info[1]->Uint32Value();
 
@@ -519,7 +576,10 @@ NAN_METHOD(Ioctx::getxattr) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   String::Utf8Value name(info[1]);
   size_t size;
@@ -530,6 +590,7 @@ NAN_METHOD(Ioctx::getxattr) {
     int ret = rados_getxattr(obj->ioctx, *oid, *name, temp_buffer, 0);
     if (ret < 0) {
       info.GetReturnValue().Set(Nan::Null());
+      return;
     } else {
       size = ret;
     }
@@ -540,6 +601,7 @@ NAN_METHOD(Ioctx::getxattr) {
 
   if (err < 0) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
 
   info.GetReturnValue().Set(Nan::New<String>(buffer, size).ToLocalChecked());
@@ -555,7 +617,10 @@ NAN_METHOD(Ioctx::setxattr) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   String::Utf8Value name(info[1]);
   String::Utf8Value buffer(info[2]);
@@ -575,7 +640,10 @@ NAN_METHOD(Ioctx::rmxattr) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   String::Utf8Value name(info[1]);
 
@@ -592,7 +660,10 @@ NAN_METHOD(Ioctx::getxattrs) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   rados_xattrs_iter_t iter;
 
@@ -600,6 +671,7 @@ NAN_METHOD(Ioctx::getxattrs) {
   int err = rados_getxattrs(obj->ioctx, *oid, &iter);
   if (err < 0) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
   while (1) {
       const char *name;
@@ -609,6 +681,7 @@ NAN_METHOD(Ioctx::getxattrs) {
       err = rados_getxattrs_next(iter, &name, &val, &len);
       if (err < 0) {
         info.GetReturnValue().Set(Nan::Null());
+        return;
       }
       if (name == NULL) {
           break;
@@ -626,10 +699,14 @@ NAN_METHOD(Ioctx::stat) {
   if (info.Length() != 1 ||
       !info[0]->IsString()) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   uint64_t psize;
   time_t pmtime;
@@ -637,6 +714,7 @@ NAN_METHOD(Ioctx::stat) {
   int err = rados_stat(obj->ioctx, *oid, &psize, &pmtime);
   if (err < 0) {
     info.GetReturnValue().Set(Nan::Null());
+    return;
   }
 
   Local<Object> stat = Nan::New<Object>();
@@ -649,8 +727,6 @@ NAN_METHOD(Ioctx::stat) {
 
 
 void Ioctx::wait_complete(uv_work_t *req) {
-  // no HandleScope as there's no NAN stuff in this function
-
   AsyncData* asyncdata = (AsyncData *)req->data;
 
   rados_aio_wait_for_complete(*asyncdata->comp);
@@ -676,14 +752,14 @@ void Ioctx::callback_complete(uv_work_t *req) {
     Local<Value> argv[argc] = {
       Nan::Null(),
       Nan::NewBuffer(asyncdata->buffer, asyncdata->size).ToLocalChecked() };
-    if (asyncdata->err) argv[0] = Nan::New<Number>(asyncdata->err);
+    if (asyncdata->err) argv[0] = Nan::Error("Error");
     asyncdata->callback.Call(argc, argv);
   }
   else {
     const unsigned argc = 1;
     Local<Value> argv[argc] = {
       Nan::Null() };
-    if (asyncdata->err) argv[0] = Nan::New<Number>(asyncdata->err);
+    if (asyncdata->err) argv[0] = Nan::Error("Error");
     asyncdata->callback.Call(argc, argv);
   }
 
@@ -699,7 +775,10 @@ NAN_METHOD(Ioctx::aio_read) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   size_t size = info[1]->IsNumber() ? info[1]->IntegerValue() : 8192;
   uint64_t offset = info[2]->IsNumber() ? info[2]->IntegerValue() : 0;
@@ -744,7 +823,10 @@ NAN_METHOD(Ioctx::aio_write) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -789,7 +871,10 @@ NAN_METHOD(Ioctx::aio_append) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -833,7 +918,10 @@ NAN_METHOD(Ioctx::aio_write_full) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
   String::Utf8Value oid(info[0]);
   char* buffer = Buffer::Data(info[1]);
   size_t size = info[2]->IsNumber() ? info[2]->Uint32Value() : Buffer::Length(info[1]);
@@ -869,7 +957,10 @@ NAN_METHOD(Ioctx::aio_write_full) {
 
 NAN_METHOD(Ioctx::aio_flush) {
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   int err = rados_aio_flush(obj->ioctx);
 
@@ -884,7 +975,10 @@ NAN_METHOD(Ioctx::aio_flush_async) {
   }
 
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   AsyncData *asyncdata = new AsyncData;
   rados_completion_t *comp = new rados_completion_t;
@@ -916,7 +1010,10 @@ NAN_METHOD(Ioctx::aio_flush_async) {
 #define ENOENT 2
 NAN_METHOD(Ioctx::objects_list) {
   Ioctx* obj = Nan::ObjectWrap::Unwrap<Ioctx>(info.This());
-  if ( !obj->require_created() ) info.GetReturnValue().Set(Nan::Null());
+  if ( !obj->require_created() ) {
+    info.GetReturnValue().Set(Nan::Null());
+    return;
+  }
 
   rados_list_ctx_t h_ctx;
   //Start listing objects in a pool.
