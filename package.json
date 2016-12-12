@@ -1,21 +1,29 @@
 {
-	"name": "rados",
-	"version": "0.2.10",
-	"description" : "Ceph rados client for node.js",
-	"author" : "Laurent Barbe <laurent@ksperis.com>",
- 	"repository" : {
-		"type" : "git",
-		"url" : "git://github.com/ksperis/node-rados.git"
-	},
-	"dependencies" : {
-		"bindings": "^1.2.1",
-		"nan": "^2.4.0"
-	},
-	"devDependencies" : {
-		"nodeunit": "*"
-	},
-	"scripts": {
-        "install": "node-gyp rebuild",
-        "test": "node_modules/.bin/nodeunit test/*"
-    }
+  "name": "rados",
+  "version": "0.3.0",
+  "description" : "Ceph rados client for node.js",
+  "author" : "Laurent Barbe <laurent@ksperis.com>",
+  "contributors": [
+    "Simon Boulet <simon@nostalgeek.com>",
+    "PAStheLoD <pasthelod@gmail.com>",
+    "Loic Dachary <loic@dachary.org>",
+    "Mark Birbeck <mark.birbeck@gmail.com>",
+    "Mingfai Ma"
+  ],
+  "license": "MIT",
+  "repository" : {
+    "type" : "git",
+    "url" : "git://github.com/ksperis/node-rados.git"
+  },
+  "dependencies" : {
+    "bindings": "^1.2.1",
+    "nan": "^2.4.0"
+  },
+  "devDependencies" : {
+    "nodeunit": "*"
+  },
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "test": "node_modules/.bin/nodeunit test/*"
+  }
 }
